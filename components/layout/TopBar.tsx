@@ -166,9 +166,9 @@ export const TopBar: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Github className="w-5 h-5" /></div>
-                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Globe className="w-5 h-5" /></div>
-                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Link className="w-5 h-5" /></div>
+                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Globe className="w-5 h-5" /><a href="#"></a></div>
+                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Globe className="w-5 h-5" /><a href="https://forumcefet.site"></a></div>
+                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.BookOpen className="w-5 h-5" /><a href="https://diary.forumcefet.site"></a></div>
                 </div>
             </div>
         </div>
