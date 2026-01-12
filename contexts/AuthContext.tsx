@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: () => Promise<void>;
   signInWithCredentials: (e: string, p: string, rememberMe?: boolean) => Promise<boolean>;
-  signUp: (e: string, p: string, u: string, g: string, rememberMe?: boolean) => Promise<boolean>;
+  signUp: (e: string, p: string, u: string, g: string, rememberMe?: boolean) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (profile: Partial<Profile>) => void;
 }
@@ -107,24 +107,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, pass: string, username: string, groupId: string, rememberMe: boolean = false): Promise<boolean> => {
+  const signUp = async (email: string, pass: string, username: string, groupId: string, rememberMe: boolean = false): Promise<{ success: boolean; message?: string }> => {
       if (isDemoMode) {
           const newProfile = await Service.createProfile(username, groupId);
           const newUser = { id: newProfile.id, email };
           if (rememberMe) localStorage.setItem('demo_user_session', JSON.stringify({ user: newUser, profile: newProfile }));
-          return loginDemoUser(newUser, newProfile);
+          loginDemoUser(newUser, newProfile);
+          return { success: true };
       } else {
           const { data, error } = await supabase.auth.signUp({
               email, 
               password: pass,
-              options: { data: { full_name: username } } 
+              options: { 
+                  data: { 
+                      full_name: username,
+                      group_id: groupId
+                  } 
+              } 
           });
           
-          if (error || !data.user) return false;
-
-          await supabase.from('profiles').update({ group_id: groupId }).eq('id', data.user.id);
+          if (error) return { success: false, message: error.message };
           
-          return true;
+          if (data.user && !data.session) {
+              return { success: true, message: 'check_email' };
+          }
+
+          return { success: true };
       }
   };
 

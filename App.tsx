@@ -5,6 +5,7 @@ import { TopBar } from './components/layout/TopBar';
 import { MobileNav } from './components/layout/MobileNav';
 import { Service } from './services/supabase';
 import { Group } from './types';
+import { Icons } from './components/Icons';
 
 import { Dashboard } from './pages/Dashboard';
 import { SubjectsPage } from './pages/Subjects';
