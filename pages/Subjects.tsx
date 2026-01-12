@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { MockService, isDemoMode, supabase } from '../services/supabase';
+import { Service } from '../services/supabase';
 import { Subject } from '../types';
 import { Icons } from '../components/Icons';
 import { useNavigate } from 'react-router-dom';
@@ -13,18 +13,8 @@ export const SubjectsPage: React.FC = () => {
 
   const fetchSubjects = async () => {
     if (!profile?.group_id) return;
-
-    if (isDemoMode) {
-      const data = await MockService.getSubjects(profile.group_id);
-      setSubjects(data);
-    } else {
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('*')
-        .eq('group_id', profile.group_id);
-      
-      if (!error && data) setSubjects(data);
-    }
+    const data = await Service.getSubjects(profile.group_id);
+    setSubjects(data);
     setLoading(false);
   };
 
@@ -51,13 +41,11 @@ export const SubjectsPage: React.FC = () => {
             className="group relative overflow-hidden rounded-2xl p-6 transition-all hover:shadow-lg hover:-translate-y-1 aspect-[4/3] flex flex-col justify-between cursor-pointer"
             style={{ backgroundColor: subject.color_hex }}
           >
-            {/* Ícone de fundo */}
             <div className="absolute -bottom-6 -right-6 text-white opacity-20 rotate-12 group-hover:scale-110 group-hover:opacity-30 transition-all duration-300">
                <Icons.Dynamic name={subject.icon_name} className="w-32 h-32" />
             </div>
             
             <div className="relative z-10 flex-1">
-              {/* Espaço vazio para alinhamento */}
             </div>
 
             <div className="relative z-10">

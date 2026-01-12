@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MockService, isDemoMode } from '../services/supabase';
+import { Service } from '../services/supabase';
 import { Profile, FileData } from '../types';
 import { Icons } from '../components/Icons';
 import { FileCard } from '../components/shared/FileCard';
@@ -21,12 +21,10 @@ export const UserProfile: React.FC = () => {
         if (!id || !currentUser) return;
         setLoading(true);
         try {
-            if (isDemoMode) {
-                const data = await MockService.getUserProfile(id, currentUser.id);
-                setProfile(data.profile);
-                setPosts(data.posts);
-                setIsFollowing(data.profile.is_following || false);
-            }
+            const data = await Service.getUserProfile(id, currentUser.id);
+            setProfile(data.profile);
+            setPosts(data.posts);
+            setIsFollowing(data.profile.is_following || false);
         } catch (e) {
             console.error(e);
         }
@@ -39,16 +37,14 @@ export const UserProfile: React.FC = () => {
       if (!profile || !currentUser) return;
       
       const newStatus = !isFollowing;
-      setIsFollowing(newStatus);
+      setIsFollowing(newStatus); 
       
       setProfile(prev => prev ? ({
           ...prev,
           followers_count: newStatus ? prev.followers_count + 1 : prev.followers_count - 1
       }) : null);
 
-      if (isDemoMode) {
-          await MockService.toggleFollow(profile.id, currentUser.id);
-      }
+      await Service.toggleFollow(profile.id, currentUser.id);
   };
 
   const isMe = currentUser?.id === id;
@@ -58,7 +54,6 @@ export const UserProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black pb-20">
-       {/* Banner */}
        <div className="h-48 bg-gradient-to-r from-indigo-500 to-purple-600 relative">
            {profile.background_url && (
                <img src={profile.background_url} alt="Banner" className="w-full h-full object-cover" />

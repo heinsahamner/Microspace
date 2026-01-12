@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, isDemoMode, MockService } from '../services/supabase';
+import { supabase, isDemoMode, Service } from '../services/supabase';
 import { Profile } from '../types';
 
 interface AuthContextType {
@@ -7,8 +7,8 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signIn: () => Promise<void>;
-  signInWithCredentials: (u: string, p: string, rememberMe?: boolean) => Promise<boolean>;
-  signUp: (username: string, groupId: string, rememberMe?: boolean) => Promise<boolean>;
+  signInWithCredentials: (e: string, p: string, rememberMe?: boolean) => Promise<boolean>;
+  signUp: (e: string, p: string, u: string, g: string, rememberMe?: boolean) => Promise<boolean>;
   signOut: () => Promise<void>;
   updateProfile: (profile: Partial<Profile>) => void;
 }
@@ -20,9 +20,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loginDemoUser = () => {
-      setUser({ id: 'u_demo', email: 'demo@student.com' });
-      setProfile({
+  const loginDemoUser = (customUser?: any, customProfile?: any) => {
+      const u = customUser || { id: 'u_demo', email: 'demo@student.com' };
+      const p = customProfile || {
         id: 'u_demo',
         username: 'demo_user',
         avatar_url: null,
@@ -32,19 +32,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         following_count: 0,
         role: 'student',
         group_id: 'g1',
-      });
+      };
+      setUser(u);
+      setProfile(p);
       setLoading(false);
+      return true;
   };
 
   useEffect(() => {
     if (isDemoMode) {
-      const storedUser = localStorage.getItem('demo_user_session');
-      if (storedUser) {
-          const parsed = JSON.parse(storedUser);
-          setUser(parsed.user);
-          setProfile(parsed.profile);
+      const stored = localStorage.getItem('demo_user_session');
+      if (stored) {
+          const parsed = JSON.parse(stored);
+          loginDemoUser(parsed.user, parsed.profile);
+      } else {
+          setLoading(false);
       }
-      setLoading(false);
       return;
     }
 
@@ -52,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       if (session?.user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        const { data } = await supabase.from('profiles').select('*, group:groups(*)').eq('id', session.user.id).single();
         setProfile(data);
       }
       setLoading(false);
@@ -63,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-         const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+         const { data } = await supabase.from('profiles').select('*, group:groups(*)').eq('id', session.user.id).single();
          setProfile(data);
       } else {
         setProfile(null);
@@ -79,90 +82,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginDemoUser();
         localStorage.setItem('demo_user_session', JSON.stringify({
             user: { id: 'u_demo', email: 'demo@student.com' },
-            profile: { 
-              id: 'u_demo', 
-              username: 'demo_user', 
-              role: 'student', 
-              group_id: 'g1',
-              avatar_url: null,
-              background_url: null,
-              bio: 'Usuário de demonstração',
-              followers_count: 0,
-              following_count: 0
-            }
+            profile: { id: 'u_demo', username: 'demo_user', role: 'student', group_id: 'g1' }
         }));
     } else {
         await supabase.auth.signInWithOAuth({ provider: 'google' });
     }
   };
 
-  const signInWithCredentials = async (u: string, p: string, rememberMe: boolean = false): Promise<boolean> => {
-    // Hardcoded admin para testes
-    if (u === 'Lucas Willian' && p === 'cxa@Ayatka#827@19') {
-        const adminUser = { id: 'admin1', email: 'lucas@microspace.app' };
-        const adminProfile: Profile = {
-            id: 'admin1',
-            username: 'Lucas Willian',
-            avatar_url: null,
-            background_url: null,
-            bio: 'Criador do Microspace',
-            followers_count: 999,
-            following_count: 0,
-            role: 'admin',
-            group_id: 'g1',
-        };
-        setUser(adminUser);
-        setProfile(adminProfile);
-        if (isDemoMode && rememberMe) {
-            localStorage.setItem('demo_user_session', JSON.stringify({
-                user: adminUser,
-                profile: adminProfile
-            }));
+  const signInWithCredentials = async (email: string, pass: string, rememberMe: boolean = false): Promise<boolean> => {
+    if (isDemoMode) {
+        if (email === 'admin' && pass === 'admin') {
+             const adminUser = { id: 'admin1', email: 'admin@microspace.app' };
+             const adminProfile: Profile = {
+                id: 'admin1', username: 'Lucas Willian', role: 'admin', group_id: 'g1', 
+                avatar_url: null, background_url: null, bio: '', followers_count: 999, following_count: 0 
+             };
+             if (rememberMe) localStorage.setItem('demo_user_session', JSON.stringify({ user: adminUser, profile: adminProfile }));
+             return loginDemoUser(adminUser, adminProfile);
         }
-        return true;
-    } else if (u && isDemoMode) {
-        const mockUser = { id: 'u_demo', email: 'user@demo.com' };
-        const mockProfile: Profile = {
-            id: 'u_demo',
-            username: u,
-            avatar_url: null,
-            background_url: null,
-            bio: 'Usuário de demonstração',
-            followers_count: 0,
-            following_count: 0,
-            role: 'student',
-            group_id: 'g1'
-        };
-        setUser(mockUser);
-        setProfile(mockProfile);
-        if (rememberMe) {
-             localStorage.setItem('demo_user_session', JSON.stringify({
-                user: mockUser,
-                profile: mockProfile
-            }));
-        }
-        return true;
+        return loginDemoUser();
+    } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        return !error;
     }
-    return false;
   };
 
-  const signUp = async (username: string, groupId: string, rememberMe: boolean = false): Promise<boolean> => {
+  const signUp = async (email: string, pass: string, username: string, groupId: string, rememberMe: boolean = false): Promise<boolean> => {
       if (isDemoMode) {
-          const newProfile = await MockService.createProfile(username, groupId);
-          const newUser = { id: newProfile.id, email: `${username}@demo.com` };
+          const newProfile = await Service.createProfile(username, groupId);
+          const newUser = { id: newProfile.id, email };
+          if (rememberMe) localStorage.setItem('demo_user_session', JSON.stringify({ user: newUser, profile: newProfile }));
+          return loginDemoUser(newUser, newProfile);
+      } else {
+          const { data, error } = await supabase.auth.signUp({
+              email, 
+              password: pass,
+              options: { data: { full_name: username } } 
+          });
           
-          setUser(newUser);
-          setProfile(newProfile);
+          if (error || !data.user) return false;
 
-          if (rememberMe) {
-              localStorage.setItem('demo_user_session', JSON.stringify({
-                  user: newUser,
-                  profile: newProfile
-              }));
-          }
+          await supabase.from('profiles').update({ group_id: groupId }).eq('id', data.user.id);
+          
           return true;
       }
-      return false;
   };
 
   const signOut = async () => {

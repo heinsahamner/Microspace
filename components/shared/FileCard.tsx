@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileData, Comment } from '../../types';
 import { Icons } from '../Icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { MockService, isDemoMode } from '../../services/supabase';
+import { Service } from '../../services/supabase';
 import { useNavigate } from 'react-router-dom';
 import { RichTextRenderer } from './RichTextRenderer';
 
@@ -50,18 +50,14 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex }) => {
           setTimeout(() => setIsAnimating(false), 300);
       }
 
-      if (isDemoMode) {
-          await MockService.toggleLike(file.id, user.id);
-      }
+      await Service.toggleLike(file.id, user.id);
   };
 
   const toggleComments = async () => {
       if (!showComments) {
           setLoadingComments(true);
-          if (isDemoMode) {
-              const data = await MockService.getComments(file.id);
-              setComments(data);
-          }
+          const data = await Service.getComments(file.id, user?.id || '');
+          setComments(data);
           setLoadingComments(false);
       }
       setShowComments(!showComments);
@@ -71,39 +67,35 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex }) => {
       e.preventDefault();
       if (!newComment.trim() || !user) return;
       
-      const parentId = replyingTo ? replyingTo.id : null;
+      const parentId = replyingTo ? replyingTo.id : undefined;
 
-      if (isDemoMode) {
-          await MockService.addComment(file.id, user.id, newComment, parentId);
-          const updated = await MockService.getComments(file.id);
-          setComments(updated);
-          setNewComment('');
-          setReplyingTo(null);
-          setCommentCount(prev => prev + 1);
-      }
+      await Service.addComment(file.id, user.id, newComment, parentId);
+      const updated = await Service.getComments(file.id, user.id);
+      setComments(updated);
+      setNewComment('');
+      setReplyingTo(null);
+      setCommentCount(prev => prev + 1);
   };
 
   const deleteComment = async (commentId: string) => {
       if (!window.confirm("Apagar comentário permanentemente?")) return;
-      if (isDemoMode) {
-          await MockService.deleteComment(commentId);
-          const updated = await MockService.getComments(file.id);
-          setComments(updated);
-          setCommentCount(prev => prev - 1);
-      }
+      await Service.deleteComment(commentId);
+      const updated = await Service.getComments(file.id, user?.id || '');
+      setComments(updated);
+      setCommentCount(prev => prev - 1);
   };
 
   const toggleCommentLike = async (commentId: string) => {
-      if (!user || !isDemoMode) return;
-      await MockService.toggleCommentLike(commentId, user.id);
-      const updated = await MockService.getComments(file.id);
+      if (!user) return;
+      await Service.toggleCommentLike(commentId, user.id);
+      const updated = await Service.getComments(file.id, user.id);
       setComments(updated);
   };
 
   const pinComment = async (commentId: string, currentPinState: boolean) => {
-      if (!user || !isDemoMode) return;
-      await MockService.pinComment(commentId, !currentPinState);
-      const updated = await MockService.getComments(file.id);
+      if (!user) return;
+      await Service.pinComment(commentId, !currentPinState);
+      const updated = await Service.getComments(file.id, user.id);
       setComments(updated);
   }
 
@@ -127,7 +119,6 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex }) => {
 
   const renderComment = (comment: Comment, depth: number = 0) => {
       const isMaxDepth = depth >= 2;
-      
       return (
       <div key={comment.id} className={`flex space-x-2 text-sm group ${depth > 0 ? 'mt-2' : 'mt-4'} ${depth > 0 && !isMaxDepth ? 'ml-8 border-l-2 border-gray-100 dark:border-gray-800 pl-2' : ''}`}>
           <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-300">

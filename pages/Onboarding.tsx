@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { MockService, isDemoMode, supabase } from '../services/supabase';
+import { Service, supabase, isDemoMode } from '../services/supabase';
 import { Group } from '../types';
 
 export const Onboarding: React.FC = () => {
@@ -11,12 +11,7 @@ export const Onboarding: React.FC = () => {
 
   useEffect(() => {
     const fetchGroups = async () => {
-       if (isDemoMode) {
-           setGroups(await MockService.getGroups());
-       } else {
-           const { data } = await supabase.from('groups').select('*');
-           if (data) setGroups(data);
-       }
+       setGroups(await Service.getGroups());
     };
     fetchGroups();
   }, []);

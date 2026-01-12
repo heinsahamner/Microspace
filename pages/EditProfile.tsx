@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MockService, isDemoMode } from '../services/supabase';
+import { Service } from '../services/supabase';
 import { Icons } from '../components/Icons';
 
 export const EditProfile: React.FC = () => {
@@ -19,10 +19,8 @@ export const EditProfile: React.FC = () => {
 
       const updates = { bio, username };
       
-      if (isDemoMode) {
-          await MockService.updateProfile(profile.id, updates);
-          updateProfile(updates);
-      }
+      await Service.updateProfile(profile.id, updates);
+      updateProfile(updates);
 
       setLoading(false);
       navigate(`/u/${profile.id}`);
@@ -47,7 +45,6 @@ export const EditProfile: React.FC = () => {
             
             <div className="p-6 space-y-6">
                 
-                {/* Avatar & Banner */}
                 <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700">Imagens</label>
                     <div className="relative h-32 bg-gray-200 rounded-xl overflow-hidden group cursor-pointer">

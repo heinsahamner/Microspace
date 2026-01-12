@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
-import { MockService, isDemoMode } from '../services/supabase';
+import { Service } from '../services/supabase';
 import { FileData } from '../types';
 
 export const Dashboard: React.FC = () => {
@@ -12,8 +12,8 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
       const loadFollowing = async () => {
-          if (user && isDemoMode) {
-              const posts = await MockService.getFollowedPosts(user.id);
+          if (user) {
+              const posts = await Service.getFollowedPosts(user.id);
               setFollowingPosts(posts);
           }
       };
@@ -88,7 +88,6 @@ export const Dashboard: React.FC = () => {
            </div>
       </div>
 
-      {/* Widget de quem segue */}
       <div className="mb-8">
           <div className="flex items-center space-x-2 mb-3 px-1">
               <Icons.UserCheck className="w-5 h-5 text-[#7900c5]" />

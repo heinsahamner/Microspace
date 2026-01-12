@@ -19,7 +19,7 @@ export const Backpack: React.FC = () => {
             <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
                 Arquivos que você salvar aparecerão aqui para acesso mesmo sem internet. 
                 <br/><br/>
-                <span className="text-sm bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded">Em breve!</span>
+                <span className="text-sm bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 px-2 py-1 rounded">Em breve na v1.1</span>
             </p>
        </div>
     </div>

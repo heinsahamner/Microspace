@@ -4,7 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Icons } from '../Icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Subject } from '../../types';
-import { MockService } from '../../services/supabase';
+import { Service } from '../../services/supabase';
 
 export const TopBar: React.FC = () => {
   const { profile, signOut } = useAuth();
@@ -25,7 +25,7 @@ export const TopBar: React.FC = () => {
 
   const toggleSubjectsMenu = async () => {
     if (!showSubjectsMenu) {
-        const subs = await MockService.getAllSubjects();
+        const subs = await Service.getAllSubjects();
         if (profile?.group_id) {
              setAllSubjects(subs.filter(s => s.group_id === profile.group_id));
         } else {
@@ -48,10 +48,8 @@ export const TopBar: React.FC = () => {
     <>
     <header className="sticky top-0 z-40 bg-white dark:bg-black border-b border-gray-100 dark:border-gray-900 shadow-sm transition-colors duration-200">
       <div className="w-full">
-        {/* Header */}
         <div className="px-4 py-3 flex items-center justify-between relative">
             
-            {/* Acesso Rápido */}
             <div className="flex items-center space-x-2 z-20">
                  <button onClick={toggleSubjectsMenu} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-300 relative">
                     <Icons.MoreVertical className="w-6 h-6" />
@@ -80,12 +78,10 @@ export const TopBar: React.FC = () => {
                 </button>
             </div>
 
-            {/* Logo */}
             <div className="absolute left-1/2 transform -translate-x-1/2 z-10 cursor-pointer group" onClick={() => setShowAbout(true)}>
                 <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white transition-all duration-300 group-hover:text-[#7900c5] group-hover:scale-105 inline-block animate-float">Microspace</span>
             </div>
 
-            {/* Ações e Perfil */}
             <div className="flex items-center space-x-3 z-20">
                 <button onClick={() => navigate('/upload')} className="hidden md:flex p-2 text-gray-500 hover:text-[#7900c5] dark:text-gray-400 dark:hover:text-purple-400 transition-colors" title="Novo Upload">
                     <Icons.Upload className="w-5 h-5" />
@@ -105,7 +101,6 @@ export const TopBar: React.FC = () => {
                             <button onClick={() => { navigate(`/u/${profile?.id}`); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center space-x-2">
                                 <Icons.User className="w-4 h-4" /> <span>Meu Perfil</span>
                             </button>
-                            {/* Upload (Mobile) */}
                             <button onClick={() => { navigate('/upload'); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center space-x-2 md:hidden">
                                 <Icons.Upload className="w-4 h-4" /> <span>Publicar Material</span>
                             </button>
@@ -129,7 +124,6 @@ export const TopBar: React.FC = () => {
             </div>
         </div>
 
-        {/* Abas de Navegação (Desktop) */}
         <div className="hidden md:block pb-1 px-4">
             <div className="flex justify-center">
                  <div className="flex space-x-1 p-1 rounded-full">
@@ -152,7 +146,6 @@ export const TopBar: React.FC = () => {
       </div>
     </header>
 
-    {/* Sobre */}
     {showAbout && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white dark:bg-[#121212] rounded-2xl p-8 max-w-sm w-full shadow-2xl relative border border-gray-100 dark:border-gray-800">

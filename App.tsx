@@ -3,7 +3,7 @@ import { MemoryRouter as Router, Routes, Route, Navigate, useLocation } from 're
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TopBar } from './components/layout/TopBar';
 import { MobileNav } from './components/layout/MobileNav';
-import { MockService } from './services/supabase';
+import { Service } from './services/supabase';
 import { Group } from './types';
 
 import { Dashboard } from './pages/Dashboard';
@@ -18,15 +18,16 @@ import { EditProfile } from './pages/EditProfile';
 import { AdminPanel } from './pages/AdminPanel';
 
 const LoginScreen = () => {
-    const { signIn, signInWithCredentials, signUp } = useAuth();
+    const { signInWithCredentials, signUp } = useAuth();
     const [isRegistering, setIsRegistering] = useState(false);
     
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
     
-    const [regUsername, setRegUsername] = useState('');
+    const [regEmail, setRegEmail] = useState('');
     const [regPassword, setRegPassword] = useState('');
+    const [regUsername, setRegUsername] = useState('');
     const [selectedGroup, setSelectedGroup] = useState('');
     const [groups, setGroups] = useState<Group[]>([]);
 
@@ -35,7 +36,7 @@ const LoginScreen = () => {
 
     useEffect(() => {
         if (isRegistering && groups.length === 0) {
-            MockService.getGroups().then(setGroups);
+            Service.getGroups().then(setGroups);
         }
     }, [isRegistering, groups.length]);
 
@@ -43,7 +44,7 @@ const LoginScreen = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
-        const success = await signInWithCredentials(username, password, rememberMe);
+        const success = await signInWithCredentials(email, password, rememberMe);
         if (!success) {
             setError('Credenciais inválidas.');
             setLoading(false);
@@ -61,7 +62,7 @@ const LoginScreen = () => {
             return;
         }
 
-        const success = await signUp(regUsername, selectedGroup, rememberMe);
+        const success = await signUp(regEmail, regPassword, regUsername, selectedGroup, rememberMe);
         if (!success) {
              setError('Erro ao criar conta.');
              setLoading(false);
@@ -94,15 +95,14 @@ const LoginScreen = () => {
             </div>
 
             {!isRegistering ? (
-                /* Login */
                 <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4 mb-4">
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1">USUÁRIO</label>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1">EMAIL</label>
                         <input 
-                            type="text" 
-                            placeholder="Digite seu usuário" 
-                            value={username}
-                            onChange={e => setUsername(e.target.value)}
+                            type="email" 
+                            placeholder="seu@email.com" 
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
                             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7900c5]"
                         />
                     </div>
@@ -110,7 +110,7 @@ const LoginScreen = () => {
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1">SENHA</label>
                         <input 
                             type="password" 
-                            placeholder="Digite sua senha" 
+                            placeholder="Sua senha" 
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7900c5]"
@@ -138,8 +138,18 @@ const LoginScreen = () => {
                     </button>
                 </form>
             ) : (
-                /* Registrar */
                 <form onSubmit={handleRegister} className="w-full max-w-sm space-y-4 mb-4">
+                     <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1">EMAIL</label>
+                        <input 
+                            type="email" 
+                            placeholder="seu@email.com" 
+                            value={regEmail}
+                            onChange={e => setRegEmail(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7900c5]"
+                            required
+                        />
+                    </div>
                      <div className="space-y-1">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1">NOME DE USUÁRIO</label>
                         <input 
@@ -198,13 +208,6 @@ const LoginScreen = () => {
                     </button>
                 </form>
             )}
-            
-            <button 
-                onClick={() => signIn()}
-                className="w-full max-w-sm border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-            >
-                Entrar com Google (Demo)
-            </button>
         </div>
     );
 }

@@ -14,14 +14,14 @@ export interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
-  background_url: string | null;
+  background_url: string | null; // Banner image
   bio: string | null;
   role: Role;
   group_id: string | null;
   followers_count: number;
   following_count: number;
   group?: Group; 
-  is_following?: boolean;
+  is_following?: boolean; // UI state for current user
 }
 
 export interface Subject {
@@ -30,7 +30,7 @@ export interface Subject {
   color_hex: string;
   icon_name: string; 
   group_id: string;
-  file_count?: number;
+  file_count?: number; // Added for dashboard display
 }
 
 export interface Comment {
@@ -52,7 +52,7 @@ export interface FileData {
   id: string;
   title: string;
   description: string | null;
-  file_url: string | null; 
+  file_url: string | null; // Nullable for text-only posts
   file_type: string | null;
   size_bytes: number | null;
   uploader_id: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { MockService, isDemoMode } from '../services/supabase';
+import { Service } from '../services/supabase';
 import { FileData, Subject, Category, Group } from '../types';
 import { Icons } from '../components/Icons';
 import { FileCard } from '../components/shared/FileCard';
@@ -17,7 +17,7 @@ const CATEGORIES: {id: Category | 'all', label: string}[] = [
 ];
 
 export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [files, setFiles] = useState<FileData[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -36,10 +36,10 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      if (profile?.group_id) {
+      if (profile?.group_id && user) {
           const [allSubs, allGroups] = await Promise.all([
-              MockService.getAllSubjects(),
-              MockService.getGroups()
+              Service.getAllSubjects(),
+              Service.getGroups()
           ]);
           setSubjects(allSubs);
           setGroups(allGroups);
@@ -49,7 +49,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
           const groupFilter = selectedGroup || profile.group_id; 
           const sourceType = type === 'official' ? 'official' : 'community'; 
           
-          let data = await MockService.getFiles(subjectFilter, categoryFilter, sourceType, groupFilter);
+          let data = await Service.getFiles(subjectFilter, categoryFilter, sourceType, groupFilter, user.id);
           setFiles(data);
       }
       setLoading(false);
@@ -58,17 +58,14 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
     if(selectedGroup || profile?.group_id) {
         loadData();
     }
-  }, [profile, type, selectedCategory, selectedSubject, selectedGroup]);
+  }, [profile, type, selectedCategory, selectedSubject, selectedGroup, user]);
 
   return (
     <div className="min-h-screen p-4 md:max-w-4xl md:mx-auto">
-        {/* Header */}
         <div className="bg-white dark:bg-[#121212] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 mb-6 transition-colors">
             <div className="flex flex-col space-y-4">
                 
-                {/* Filtro de linha superior */}
                 <div className="flex flex-col sm:flex-row gap-2">
-                    {/* Group/Profile Filter */}
                     <div className="relative">
                         <select 
                             value={selectedGroup}
@@ -84,7 +81,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
                         <Icons.Filter className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-400 pointer-events-none" />
                     </div>
 
-                    {/* Filtro de Matérias */}
                     <div className="relative flex-1">
                         <select 
                             value={selectedSubject}
@@ -102,7 +98,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
                 
                 <div className="h-px bg-gray-100 dark:bg-gray-800 w-full"></div>
 
-                {/* Filtros */}
                 <div className="flex space-x-2 overflow-x-auto no-scrollbar pb-1">
                     {CATEGORIES.map(cat => (
                         <button
@@ -121,7 +116,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
             </div>
         </div>
 
-        {/* Lista */}
         <div className="space-y-4">
             {loading ? (
                 <div className="text-center py-12 text-gray-400 dark:text-gray-500">Carregando feed...</div>

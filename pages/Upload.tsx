@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MockService, isDemoMode, supabase } from '../services/supabase';
+import { Service } from '../services/supabase';
 import { Subject, Category, Group } from '../types';
 import { Icons } from '../components/Icons';
 
@@ -23,17 +23,11 @@ export const Upload: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const allGroups = await MockService.getGroups();
+      const allGroups = await Service.getGroups();
       setGroups(allGroups);
-      if (profile?.group_id) setTargetGroupId(profile.group_id);
-
       if (profile?.group_id) {
-        if(isDemoMode) {
-             setSubjects(await MockService.getSubjects(profile.group_id));
-        } else {
-             const { data } = await supabase.from('subjects').select('*');
-             if(data) setSubjects(data);
-        }
+          setTargetGroupId(profile.group_id);
+          setSubjects(await Service.getSubjects(profile.group_id));
       }
     };
     loadData();
@@ -46,7 +40,6 @@ export const Upload: React.FC = () => {
           const current = description;
           const newText = current.substring(0, start) + text + current.substring(end);
           setDescription(newText);
-          
           setTimeout(() => {
               if (textareaRef.current) {
                   textareaRef.current.focus();
@@ -62,7 +55,6 @@ export const Upload: React.FC = () => {
         const end = textareaRef.current.selectionEnd;
         const current = description;
         const selected = current.substring(start, end);
-        
         if (selected) {
             const newText = current.substring(0, start) + `${wrapper}${selected}${wrapper}` + current.substring(end);
             setDescription(newText);
@@ -77,24 +69,17 @@ export const Upload: React.FC = () => {
     if ((!file && !description) || !subjectId || !title || !targetGroupId) return;
 
     setIsSubmitting(true);
-
     try {
-        if (isDemoMode) {
-            const meta = {
-                title,
-                description,
-                subject_id: subjectId,
-                target_group_id: targetGroupId,
-                category,
-                uploader_id: profile?.id
-            };
-            await MockService.uploadFile(file, meta);
-            setTimeout(() => {
-                navigate('/community');
-            }, 1000);
-        } else {
-            navigate('/');
-        }
+        const meta = {
+            title,
+            description,
+            subject_id: subjectId,
+            target_group_id: targetGroupId,
+            category,
+            uploader_id: profile?.id
+        };
+        await Service.uploadFile(file, meta);
+        setTimeout(() => navigate('/community'), 1000);
     } catch (error) {
         console.error(error);
         alert('Erro ao enviar.');
@@ -155,13 +140,6 @@ export const Upload: React.FC = () => {
                         <button type="button" onClick={() => insertText('[Link](url)')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-400" title="Link">
                             <Icons.Link className="w-4 h-4" />
                         </button>
-                        <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-                        <button type="button" onClick={() => insertText('@')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-400 font-bold text-sm px-2" title="Mencionar Publicação">
-                            @Ref
-                        </button>
-                        <button type="button" onClick={() => insertText('#')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-400 font-bold text-sm px-2" title="Mencionar Usuário">
-                            #User
-                        </button>
                     </div>
                     <textarea 
                         ref={textareaRef}
@@ -173,7 +151,6 @@ export const Upload: React.FC = () => {
                 </div>
             </div>
 
-            {/* Público-alvo (grupo) */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Para qual Turma?</label>
                 <select 

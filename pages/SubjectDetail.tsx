@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Subject, Category, FileData, TabItem } from '../types';
 import { Icons } from '../components/Icons';
-import { MockService, isDemoMode, supabase } from '../services/supabase';
+import { Service } from '../services/supabase';
 import { FileCard } from '../components/shared/FileCard';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -53,7 +53,7 @@ export const SubjectDetail: React.FC = () => {
   useEffect(() => {
     if (!subject && id) {
         const fetchSub = async () => {
-             const subs = await MockService.getAllSubjects();
+             const subs = await Service.getAllSubjects();
              const found = subs.find(s => s.id === id);
              if (found) setSubject(found);
         };
@@ -65,13 +65,8 @@ export const SubjectDetail: React.FC = () => {
     const fetchFiles = async () => {
       setLoading(true);
       if (!id || !user) return;
-
-      if (isDemoMode) {
-        const data = await MockService.getFiles(id, activeTab, sourceFilter, null, user.id);
-        setFiles(data);
-      } else {
-        // Supabase virá aqui
-      }
+      const data = await Service.getFiles(id, activeTab, sourceFilter, null, user.id);
+      setFiles(data);
       setLoading(false);
     };
 
@@ -82,7 +77,6 @@ export const SubjectDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20" style={{ '--theme-color': subject.color_hex } as React.CSSProperties}>
-      {/* Header */}
       <div className="bg-[var(--theme-color)] text-white pt-8 pb-12 px-6 rounded-b-[2.5rem] relative shadow-lg transition-all duration-300">
         <div className="md:max-w-4xl md:mx-auto">
             <div className="flex items-center justify-between mb-6">
@@ -100,10 +94,8 @@ export const SubjectDetail: React.FC = () => {
       </div>
 
       <div className="md:max-w-4xl md:mx-auto px-4 -mt-8 relative z-10">
-        {/* Controles */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
             
-            {/* Abas */}
             <div className="flex bg-gray-50 p-1 rounded-full w-full md:w-auto">
                 {TABS.map((tab) => (
                 <button
@@ -120,7 +112,6 @@ export const SubjectDetail: React.FC = () => {
                 ))}
             </div>
 
-            {/* Filtro */}
             <button 
                 onClick={cycleFilter}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all w-full md:w-auto justify-center ${getFilterColorClass()}`}
@@ -132,7 +123,6 @@ export const SubjectDetail: React.FC = () => {
 
         </div>
 
-        {/* Conteúdo */}
         <div className="space-y-4">
             {loading ? (
                 <div className="text-center py-12 text-gray-400">Carregando arquivos...</div>
