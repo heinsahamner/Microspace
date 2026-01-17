@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Icons } from '../components/Icons';
 
 export const AdminClaim: React.FC = () => {
-    const { profile } = useAuth();
+    const { profile, refreshProfile } = useAuth();
     const navigate = useNavigate();
     const [key, setKey] = useState('');
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -19,9 +19,11 @@ export const AdminClaim: React.FC = () => {
             
             if (success) {
                 setStatus('success');
+                await refreshProfile();
+                
                 setTimeout(() => {
-                    window.location.href = '/admin';
-                }, 1500);
+                    navigate('/admin');
+                }, 1000);
             } else {
                 setStatus('error');
             }
@@ -70,13 +72,13 @@ export const AdminClaim: React.FC = () => {
 
                     {status === 'error' && (
                         <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-bold text-center rounded-lg animate-in shake">
-                            Erro. Verifique a senha ou se o script SQL foi rodado no Supabase.
+                            Erro. Verifique a senha ou se o script SQL foi rodado.
                         </div>
                     )}
 
                     {status === 'success' && (
                         <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm font-bold text-center rounded-lg animate-in zoom-in">
-                            Acesso Concedido. Redirecionando...
+                            Acesso Concedido! Entrando...
                         </div>
                     )}
 

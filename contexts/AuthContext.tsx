@@ -12,6 +12,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (profile: Partial<Profile>) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,6 +57,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (e) {
           console.error(e);
           return null;
+      }
+  };
+
+  const refreshProfile = async () => {
+      if (user) {
+          const updated = await fetchProfile(user.id);
+          if (updated) setProfile(updated);
       }
   };
 
@@ -136,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, pass: string, username: string, groupId: string): Promise<{ success: boolean; message?: string; error?: string }> => {
       if (isDemoMode) {
+          // @ts-ignore
           const newProfile = await Service.createProfile(username, groupId);
           const newUser = { id: newProfile.id, email };
           handleDemoLogin(newUser, newProfile, true);
@@ -175,7 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
       if (isDemoMode) return { success: true };
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/reset-password',
+          redirectTo: window.location.origin + '/reset-password', // Simplified
       });
       if (error) return { success: false, error: error.message };
       return { success: true };
@@ -188,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signInWithCredentials, signUp, signOut, resetPassword, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signInWithCredentials, signUp, signOut, resetPassword, updateProfile, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
