@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { FileData, Subject, Profile, Group, Comment, Role } from '../types';
+import { FileData, Subject, Profile, Group, Comment, Role, FileAttachment } from '../types';
 
 const getEnv = (key: string) => {
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[`VITE_${key}`]) {
@@ -63,7 +63,31 @@ export const MockService = {
     if (sourceType !== 'all') files = files.filter(f => f.source_type === sourceType);
     return files.map(f => ({ ...f, subject: MOCK_SUBJECTS.find(s => s.id === f.subject_id), uploader: MOCK_PROFILES.find(p => p.id === f.uploader_id), isLiked: MOCK_LIKES[f.id]?.includes(currentUserId) || false, likes_count: MOCK_LIKES[f.id]?.length || 0, comments_count: MOCK_COMMENTS.filter(c => c.file_id === f.id).length }));
   },
-  uploadFile: async (file: File | null, meta: any) => { MOCK_FILES.push({ id: `f${Date.now()}`, ...meta, file_url: file ? URL.createObjectURL(file) : null, created_at: new Date().toISOString(), likes_count: 0, comments_count: 0, views_count: 0 }); return true; },
+  uploadFile: async (file: File | null, meta: any) => { 
+    
+    const attachments: FileAttachment[] = files.map(f => ({
+          url: URL.createObjectURL(f),
+          name: f.name,
+          size: f.size,
+          type: f.name.split('.').pop() || 'file'
+      }));
+      
+      MOCK_FILES.push({ 
+          id: `f${Date.now()}`, 
+          ...meta, 
+          file_url: attachments[0]?.url || null,
+          file_type: attachments[0]?.type || null,
+          size_bytes: attachments[0]?.size || 0,
+          attachments,
+          created_at: new Date().toISOString(), 
+          likes_count: 0, 
+          comments_count: 0, 
+          views_count: 0 
+      }); 
+      return true; 
+  },
+
+  uploadProfileImage: async (userId: string, file: File, type: 'avatar' | 'background') => { return URL.createObjectURL(file); },
   toggleLike: async (fileId: string, userId: string) => { if(!MOCK_LIKES[fileId]) MOCK_LIKES[fileId] = []; const i = MOCK_LIKES[fileId].indexOf(userId); if(i>-1) { MOCK_LIKES[fileId].splice(i,1); return false; } else { MOCK_LIKES[fileId].push(userId); return true; } },
   getUserProfile: async (userId: string, currentUserId: string) => { 
       const p = MOCK_PROFILES.find(x => x.id === userId); 
@@ -78,7 +102,10 @@ export const MockService = {
   addComment: async (fileId: string, userId: string, content: string, parentId?: string) => { const c:Comment = { id: `c${Date.now()}`, file_id: fileId, user_id: userId, content, parent_id: parentId, created_at: new Date().toISOString(), likes_count: 0, is_deleted: false }; MOCK_COMMENTS.push(c); return c; },
   deleteComment: async (id: string) => { MOCK_COMMENTS = MOCK_COMMENTS.filter(c => c.id !== id); },
   toggleCommentLike: async (cid: string, uid: string) => { return true; },
-  pinComment: async (cid: string, pinned: boolean) => { const c = MOCK_COMMENTS.find(x => x.id === cid); if(c) c.is_pinned = pinned; }
+  pinComment: async (cid: string, pinned: boolean) => { const c = MOCK_COMMENTS.find(x => x.id === cid); if(c) c.is_pinned = pinned; },
+
+  getAdminStats: async () => ({ users: MOCK_PROFILES.length, groups: MOCK_GROUPS.length, files: MOCK_FILES.length, storage: '250 MB' }),
+  claimAdminAccess: async (key: string) => key === 'MSP-3F9C2E8A7D4B6QXW-RJH5KPNM-2026'
 };
 
 export const RealService = {
@@ -97,7 +124,7 @@ export const RealService = {
         await supabase.from('groups').delete().eq('id', id);
     },
     getAllUsers: async (): Promise<Profile[]> => {
-        const { data } = await supabase.from('profiles').select('*, group:groups(*)');
+        const { data } = await supabase.from('profiles').select('*, group:groups(*)').order('created_at', { ascending: false });
         return data || [];
     },
     updateUserRole: async (userId: string, role: Role) => {
@@ -162,31 +189,43 @@ export const RealService = {
             comments_count: f.comments?.[0]?.count || 0,
         }));
     },
-    uploadFile: async (file: File | null, meta: any) => {
-        let fileUrl = null;
-        let sizeBytes = 0;
-        let fileType = 'text';
+    uploadFile: async (files: File[], meta: any) => {
+        const attachments: FileAttachment[] = [];
+        let primaryFileUrl = null;
+        let primaryFileType = null;
+        let primarySize = 0;
 
-        if (file) {
+        for (const file of files) {
             const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.floor(Math.random()*1000)}.${fileExt}`;
+            const fileName = `${Date.now()}_${Math.floor(Math.random()*10000)}.${fileExt}`;
             const filePath = `${meta.target_group_id}/${meta.subject_id}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage.from('materials').upload(filePath, file);
             if (uploadError) throw uploadError;
 
             const { data: { publicUrl } } = supabase.storage.from('materials').getPublicUrl(filePath);
-            fileUrl = publicUrl;
-            sizeBytes = file.size;
-            fileType = fileExt || 'file';
+            
+            attachments.push({
+                url: publicUrl,
+                name: file.name,
+                type: fileExt || 'unknown',
+                size: file.size
+            });
+        }
+
+        if (attachments.length > 0) {
+            primaryFileUrl = attachments[0].url;
+            primaryFileType = attachments[0].type;
+            primarySize = attachments[0].size;
         }
 
         const { error: dbError } = await supabase.from('files').insert({
             title: meta.title,
             description: meta.description,
-            file_url: fileUrl,
-            file_type: fileType,
-            size_bytes: sizeBytes,
+            file_url: primaryFileUrl,
+            file_type: primaryFileType,
+            size_bytes: primarySize,
+            attachments: attachments,
             uploader_id: meta.uploader_id,
             subject_id: meta.subject_id,
             target_group_id: meta.target_group_id,
@@ -197,6 +236,19 @@ export const RealService = {
         if (dbError) throw dbError;
         return true;
     },
+
+    uploadProfileImage: async (userId: string, file: File, type: 'avatar' | 'background') => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}/${type}_${Date.now()}.${fileExt}`;
+        
+        const { error } = await supabase.storage.from('profiles').upload(fileName, file, { upsert: true });
+        
+        if (error) throw error;
+        
+        const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(fileName);
+        return publicUrl;
+    },
+
     toggleLike: async (fileId: string, userId: string) => {
         const { data } = await supabase.from('likes').select('id').eq('file_id', fileId).eq('user_id', userId).single();
         if (data) {
@@ -278,7 +330,16 @@ export const RealService = {
         if (data) { await supabase.from('comment_likes').delete().eq('id', data.id); return false; }
         else { await supabase.from('comment_likes').insert({ comment_id: cid, user_id: uid }); return true; }
     },
-    pinComment: async (cid: string, isPinned: boolean) => { await supabase.from('comments').update({ is_pinned: isPinned }).eq('id', cid); }
+    pinComment: async (cid: string, isPinned: boolean) => { await supabase.from('comments').update({ is_pinned: isPinned }).eq('id', cid); },
+
+    claimAdminAccess: async (key: string): Promise<boolean> => {
+        const { data, error } = await supabase.rpc('promote_me', { secret_key: key });
+        if (error) {
+            console.error(error);
+            return false;
+        }
+        return data as boolean;
+    }
 };
 
 export const Service = isDemoMode ? MockService : RealService;

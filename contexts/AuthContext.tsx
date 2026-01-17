@@ -7,9 +7,10 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signIn: () => Promise<void>;
-  signInWithCredentials: (e: string, p: string, rememberMe?: boolean) => Promise<boolean>;
-  signUp: (e: string, p: string, u: string, g: string, rememberMe?: boolean) => Promise<{ success: boolean; message?: string }>;
+  signInWithCredentials: (e: string, p: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  signUp: (e: string, p: string, u: string, g: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (profile: Partial<Profile>) => void;
 }
 
@@ -20,7 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loginDemoUser = (customUser?: any, customProfile?: any) => {
+  const handleDemoLogin = (customUser?: any, customProfile?: any, persist: boolean = false) => {
       const u = customUser || { id: 'u_demo', email: 'demo@student.com' };
       const p = customProfile || {
         id: 'u_demo',
@@ -33,10 +34,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'student',
         group_id: 'g1',
       };
+      
       setUser(u);
       setProfile(p);
       setLoading(false);
-      return true;
+      
+      if (persist) {
+          localStorage.setItem('demo_user_session', JSON.stringify({ user: u, profile: p }));
+      }
+      return { success: true };
+  };
+
+  const fetchProfile = async (userId: string) => {
+      try {
+          const { data, error } = await supabase.from('profiles').select('*, group:groups(*)').eq('id', userId).single();
+          if (error) {
+              console.error("AuthContext: Profile fetch error", error);
+              return null;
+          }
+          return data;
+      } catch (e) {
+          console.error(e);
+          return null;
+      }
   };
 
   useEffect(() => {
@@ -44,34 +64,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const stored = localStorage.getItem('demo_user_session');
       if (stored) {
           const parsed = JSON.parse(stored);
-          loginDemoUser(parsed.user, parsed.profile);
+          handleDemoLogin(parsed.user, parsed.profile);
       } else {
           setLoading(false);
       }
       return;
     }
 
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const { data } = await supabase.from('profiles').select('*, group:groups(*)').eq('id', session.user.id).single();
-        setProfile(data);
-      }
-      setLoading(false);
+    const checkSession = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUser(session.user);
+                const userProfile = await fetchProfile(session.user.id);
+                setProfile(userProfile);
+            }
+        } catch (error) {
+            console.error("AuthContext: Session check failed", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    getSession();
+    checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-         const { data } = await supabase.from('profiles').select('*, group:groups(*)').eq('id', session.user.id).single();
-         setProfile(data);
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        
+        if (session?.user) {
+            setUser(session.user);
+            if (!profile || profile.id !== session.user.id) {
+                const userProfile = await fetchProfile(session.user.id);
+                setProfile(userProfile);
+            }
+        } else {
+            setUser(null);
+            setProfile(null);
+        }
+        setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -79,17 +108,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async () => {
     if (isDemoMode) {
-        loginDemoUser();
-        localStorage.setItem('demo_user_session', JSON.stringify({
-            user: { id: 'u_demo', email: 'demo@student.com' },
-            profile: { id: 'u_demo', username: 'demo_user', role: 'student', group_id: 'g1' }
-        }));
+        handleDemoLogin(undefined, undefined, true);
     } else {
         await supabase.auth.signInWithOAuth({ provider: 'google' });
     }
   };
 
-  const signInWithCredentials = async (email: string, pass: string, rememberMe: boolean = false): Promise<boolean> => {
+  const signInWithCredentials = async (email: string, pass: string, rememberMe: boolean = false): Promise<{ success: boolean; error?: string }> => {
     if (isDemoMode) {
         if (email === 'admin' && pass === 'admin') {
              const adminUser = { id: 'admin1', email: 'admin@microspace.app' };
@@ -97,22 +122,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: 'admin1', username: 'Lucas Willian', role: 'admin', group_id: 'g1', 
                 avatar_url: null, background_url: null, bio: '', followers_count: 999, following_count: 0 
              };
-             if (rememberMe) localStorage.setItem('demo_user_session', JSON.stringify({ user: adminUser, profile: adminProfile }));
-             return loginDemoUser(adminUser, adminProfile);
+             handleDemoLogin(adminUser, adminProfile, rememberMe);
+             return { success: true };
         }
-        return loginDemoUser();
+        handleDemoLogin(undefined, undefined, rememberMe);
+        return { success: true };
     } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-        return !error;
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) return { success: false, error: error.message };
+        return { success: true };
     }
   };
 
-  const signUp = async (email: string, pass: string, username: string, groupId: string, rememberMe: boolean = false): Promise<{ success: boolean; message?: string }> => {
+  const signUp = async (email: string, pass: string, username: string, groupId: string): Promise<{ success: boolean; message?: string; error?: string }> => {
       if (isDemoMode) {
           const newProfile = await Service.createProfile(username, groupId);
           const newUser = { id: newProfile.id, email };
-          if (rememberMe) localStorage.setItem('demo_user_session', JSON.stringify({ user: newUser, profile: newProfile }));
-          loginDemoUser(newUser, newProfile);
+          handleDemoLogin(newUser, newProfile, true);
           return { success: true };
       } else {
           const { data, error } = await supabase.auth.signUp({
@@ -121,12 +147,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               options: { 
                   data: { 
                       full_name: username,
-                      group_id: groupId
+                      group_id: groupId 
                   } 
               } 
           });
           
-          if (error) return { success: false, message: error.message };
+          if (error) return { success: false, error: error.message };
           
           if (data.user && !data.session) {
               return { success: true, message: 'check_email' };
@@ -146,6 +172,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+      if (isDemoMode) return { success: true };
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/reset-password',
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+  };
+
   const updateProfile = (updates: Partial<Profile>) => {
     if (profile) {
       setProfile({ ...profile, ...updates });
@@ -153,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signInWithCredentials, signUp, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signInWithCredentials, signUp, signOut, resetPassword, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -37,7 +37,7 @@ export const TopBar: React.FC = () => {
 };
 
   const tabs = [
-    { path: '/', label: 'Dashboard' },
+    { path: '/', label: 'Início' },
     { path: '/subjects', label: 'Matérias' },
     { path: '/community', label: 'Comunidade' },
     { path: '/official', label: 'Oficial' },

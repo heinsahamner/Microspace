@@ -25,7 +25,7 @@ export const Dashboard: React.FC = () => {
       <div className="mb-6 mt-2 flex justify-between items-end">
         <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bom dia, {profile?.username}</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">{profile?.group?.name || 'Estudante'} • 2024</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">{profile?.group?.name || 'Estudante'} • {new Date().getFullYear()}</p>
         </div>
         <button onClick={() => navigate(`/u/${profile?.id}`)} className="text-xs font-bold text-[#7900c5] hover:underline">
             Ver meu perfil
