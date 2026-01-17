@@ -37,7 +37,7 @@ export const UserProfile: React.FC = () => {
       if (!profile || !currentUser) return;
       
       const newStatus = !isFollowing;
-      setIsFollowing(newStatus); 
+      setIsFollowing(newStatus);
       
       setProfile(prev => prev ? ({
           ...prev,
@@ -76,15 +76,26 @@ export const UserProfile: React.FC = () => {
                    )}
                </div>
                
-               <div className="mb-2">
+               <div className="mb-2 flex flex-col items-end gap-2">
                    {isMe ? (
-                       <button 
-                         onClick={() => navigate('/profile/edit')}
-                         className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center space-x-2"
-                       >
-                           <Icons.Edit className="w-4 h-4" />
-                           <span>Editar Perfil</span>
-                       </button>
+                       <>
+                           <button 
+                             onClick={() => navigate('/profile/edit')}
+                             className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center space-x-2"
+                           >
+                               <Icons.Edit className="w-4 h-4" />
+                               <span>Editar Perfil</span>
+                           </button>
+                           
+                           {profile.role !== 'admin' && (
+                               <button 
+                                 onClick={() => navigate('/claim-admin')}
+                                 className="text-xs text-gray-400 hover:text-[#7900c5] underline"
+                               >
+                                 Resgatar Admin
+                               </button>
+                           )}
+                       </>
                    ) : (
                        <button 
                          onClick={handleFollow}
@@ -114,9 +125,10 @@ export const UserProfile: React.FC = () => {
                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.username}</h1>
                <div className="flex items-center space-x-2 text-sm mt-1">
                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${
+                       profile.role === 'admin' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
                        profile.role === 'teacher' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                    }`}>
-                       {profile.role === 'teacher' ? 'Professor(a)' : 'Estudante'}
+                       {profile.role === 'admin' ? 'Administrador' : profile.role === 'teacher' ? 'Professor(a)' : 'Estudante'}
                    </span>
                    <span className="text-gray-500 dark:text-gray-400">• {profile.group?.name}</span>
                </div>

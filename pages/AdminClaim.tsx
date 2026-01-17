@@ -14,14 +14,19 @@ export const AdminClaim: React.FC = () => {
         e.preventDefault();
         setStatus('loading');
         
-        const success = await Service.claimAdminAccess(key);
-        
-        if (success) {
-            setStatus('success');
-            setTimeout(() => {
-                window.location.href = '/admin';
-            }, 1500);
-        } else {
+        try {
+            const success = await Service.claimAdminAccess(key);
+            
+            if (success) {
+                setStatus('success');
+                setTimeout(() => {
+                    window.location.href = '/admin';
+                }, 1500);
+            } else {
+                setStatus('error');
+            }
+        } catch (err) {
+            console.error(err);
             setStatus('error');
         }
     };
@@ -65,7 +70,7 @@ export const AdminClaim: React.FC = () => {
 
                     {status === 'error' && (
                         <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-bold text-center rounded-lg animate-in shake">
-                            Acesso Negado. Chave incorreta.
+                            Erro. Verifique a senha ou se o script SQL foi rodado no Supabase.
                         </div>
                     )}
 
