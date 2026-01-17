@@ -202,7 +202,6 @@ export const Upload: React.FC = () => {
                                 <Icons.Upload className="w-5 h-5 text-gray-400 mb-1" />
                                 <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Adicionar Arquivo</span>
                             </label>
-                        )}
                     </div>
                 </div>
 
