@@ -37,7 +37,7 @@ export const TopBar: React.FC = () => {
 };
 
   const tabs = [
-    { path: '/', label: 'Início' },
+    { path: '/', label: 'Dashboard' },
     { path: '/subjects', label: 'Matérias' },
     { path: '/community', label: 'Comunidade' },
     { path: '/official', label: 'Oficial' },
@@ -96,19 +96,26 @@ export const TopBar: React.FC = () => {
                         <div className="absolute top-12 right-0 w-64 bg-white dark:bg-gray-900 shadow-xl rounded-xl border border-gray-100 dark:border-gray-800 p-2 z-50 animate-in fade-in slide-in-from-top-2">
                              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 mb-2">
                                 <p className="font-bold text-gray-900 dark:text-white truncate">{profile?.username}</p>
-                                <p className="text-xs text-gray-500 capitalize">{profile?.role}</p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs text-gray-500 capitalize">{profile?.role}</p>
+                                    {profile?.role === 'admin' && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 rounded font-bold">ADMIN</span>}
+                                </div>
                             </div>
+                            
                             <button onClick={() => { navigate(`/u/${profile?.id}`); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center space-x-2">
                                 <Icons.User className="w-4 h-4" /> <span>Meu Perfil</span>
                             </button>
+                            
                             <button onClick={() => { navigate('/upload'); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center space-x-2 md:hidden">
                                 <Icons.Upload className="w-4 h-4" /> <span>Publicar Material</span>
                             </button>
+                            
                             {profile?.role === 'admin' && (
-                                <button onClick={() => { navigate('/admin'); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-[#7900c5] hover:bg-purple-50 dark:hover:bg-gray-800 rounded-lg flex items-center space-x-2">
+                                <button onClick={() => { navigate('/admin'); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg flex items-center space-x-2 font-bold my-1">
                                     <Icons.Shield className="w-4 h-4" /> <span>Painel Admin</span>
                                 </button>
                             )}
+
                             <button onClick={() => { navigate('/profile/edit'); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center space-x-2">
                                 <Icons.Edit className="w-4 h-4" /> <span>Editar Perfil</span>
                             </button>
@@ -166,9 +173,9 @@ export const TopBar: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Globe className="w-5 h-5" /><a href="#"></a></div>
-                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Globe className="w-5 h-5" /><a href="https://forumcefet.site"></a></div>
-                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.BookOpen className="w-5 h-5" /><a href="https://diary.forumcefet.site"></a></div>
+                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Github className="w-5 h-5" /></div>
+                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Globe className="w-5 h-5" /></div>
+                    <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400"><Icons.Link className="w-5 h-5" /></div>
                 </div>
             </div>
         </div>

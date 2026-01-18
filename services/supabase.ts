@@ -1,25 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { FileData, Subject, Profile, Group, Comment, Role, FileAttachment } from '../types';
 
-const getEnv = (key: string) => {
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[`VITE_${key}`]) {
-        return import.meta.env[`VITE_${key}`];
-    }
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[`REACT_APP_${key}`]) {
-        return import.meta.env[`REACT_APP_${key}`];
-    }
-    return undefined;
-};
+const getEnv = (key: string): string | undefined => {
+  return import.meta.env[`VITE_${key}`]
+}
 
-const SUPABASE_URL = getEnv('SUPABASE_URL');
-const SUPABASE_KEY = getEnv('SUPABASE_ANON_KEY');
+const SUPABASE_URL = getEnv('SUPABASE_URL')
+const SUPABASE_KEY = getEnv('SUPABASE_ANON_KEY')
 
-export const isDemoMode = !SUPABASE_URL || !SUPABASE_KEY;
+export const isDemoMode = !SUPABASE_URL || !SUPABASE_KEY
 
 export const supabase = createClient(
-    SUPABASE_URL || 'https://placeholder.supabase.co', 
-    SUPABASE_KEY || 'placeholder'
-);
+  SUPABASE_URL ?? 'https://placeholder.supabase.co',
+  SUPABASE_KEY ?? 'placeholder'
+)
 
 let MOCK_GROUPS: Group[] = [
   { id: 'g1', name: '3º Ano Info', slug: '3-info', academic_year: 2024 },
