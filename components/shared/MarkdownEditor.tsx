@@ -23,9 +23,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange 
         let newCursorPos = 0;
 
         if (selectedText.length > 0) {
+            // Wrap selection
             newText = currentText.substring(0, start) + before + selectedText + after + currentText.substring(end);
             newCursorPos = end + before.length + after.length;
         } else {
+            // Insert and place cursor between
             newText = currentText.substring(0, start) + before + after + currentText.substring(end);
             newCursorPos = start + before.length;
         }
@@ -62,6 +64,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange 
 
     return (
         <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-900 flex flex-col h-full shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-[#7900c5]/50">
+            {/* Toolbar */}
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 px-2 py-2 gap-2 overflow-x-auto no-scrollbar">
                 <div className="flex space-x-1 shrink-0">
                     <button type="button" onClick={() => setMode('write')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'write' ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
@@ -107,6 +110,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange 
                 )}
             </div>
 
+            {/* Editor / Preview Area */}
             <div className="flex-1 relative min-h-[300px] bg-white dark:bg-gray-900">
                 {mode === 'write' ? (
                     <textarea 

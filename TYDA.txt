@@ -1,0 +1,157 @@
+
+================================================================================
+GUIA DE INTEGRAÇÃO TYDA: CLOUD AUTH + LOCAL DATABASE
+================================================================================
+
+Este projeto utiliza uma arquitetura híbrida:
+- AUTENTICAÇÃO: Supabase Cloud.
+- DADOS: Supabase Local.
+
+--------------------------------------------------------------------------------
+1. O PROBLEMA DA VALIDAÇÃO (THE HANDSHAKE)
+--------------------------------------------------------------------------------
+O banco local precisa confiar no token gerado pela nuvem.
+Como você observou corretamente, o termo "Legacy JWT Secret" aparece em alguns lugares,
+mas a mecânica para Self-Hosting/Local Dev exige que definamos uma chave de assinatura.
+
+--------------------------------------------------------------------------------
+2. ONDE PEGAR A CHAVE NA NUVEM
+--------------------------------------------------------------------------------
+1. Vá no Supabase Dashboard (Cloud).
+2. Project Settings -> API.
+3. Procure a seção "JWT Settings".
+4. Você verá o campo "JWT Secret".
+   *Nota: Mesmo que a interface diga que é legacy ou sugira Signing Keys, para
+   fins de desenvolvimento híbrido, este é o segredo HS256 que precisamos.*
+   -> Copie este valor.
+
+--------------------------------------------------------------------------------
+3. ONDE COLOCAR A CHAVE NO LOCAL (SUPABASE CLI)
+--------------------------------------------------------------------------------
+A confusão comum é procurar no `config.toml`. Nas versões modernas da CLI,
+isso é gerenciado pelo arquivo `.env` dentro da pasta `supabase/`.
+
+1. Na raiz do seu projeto, entre na pasta `supabase/`.
+2. Abra (ou crie) o arquivo `.env`.
+   (Nota: Não confunda com o `.env` da raiz do frontend React).
+3. Procure ou adicione a variável:
+
+   SUPABASE_AUTH_JWT_SECRET="<COLE_A_CHAVE_DA_NUVEM_AQUI>"
+
+4. Se você estiver usando docker-compose puro (sem CLI), procure no seu
+   `docker-compose.yml` pela variável `JWT_SECRET` ou `PGRST_JWT_SECRET`.
+
+5. REINICIE O SUPABASE:
+   $ npx supabase stop
+   $ npx supabase start
+
+   Ao reiniciar, o output do terminal deve mostrar a chave atualizada.
+
+--------------------------------------------------------------------------------
+4. CONFIGURAÇÃO DO FRONTEND (.env)
+--------------------------------------------------------------------------------
+No arquivo `.env` da raiz do projeto React (Vite):
+
+# URL e Key do Projeto CLOUD (Para Login)
+VITE_CLOUD_AUTH_URL="https://seu-projeto.supabase.co"
+VITE_CLOUD_AUTH_KEY="<ANON_KEY_DA_NUVEM>"
+
+# URL e Key do Projeto LOCAL (Para Dados)
+VITE_LOCAL_DB_URL="http://127.0.0.1:54321"
+VITE_LOCAL_DB_KEY="<ANON_KEY_LOCAL>"
+
+--------------------------------------------------------------------------------
+5. RESUMO TÉCNICO
+--------------------------------------------------------------------------------
+O Frontend pega o token do Cloud e o envia para o Local.
+O Local pega esse token e tenta validar a assinatura usando o `SUPABASE_AUTH_JWT_SECRET`.
+Se as chaves baterem, o RLS funciona e o usuário é identificado.
+
+--------------------------------------------------------------------------------
+6. DETALHAMENTO TÉCNICO: O QUE ACONTECE POR TRÁS DOS PANOS
+--------------------------------------------------------------------------------
+
+Para entender por que isso funciona, precisamos dissecar o JWT (JSON Web Token).
+
+1. A ANATOMIA DO TOKEN
+   Um JWT é composto por três partes: Header.Payload.Signature
+
+   - Payload: Contém os dados do usuário (ID, Email, Role).
+   - Signature: É um hash criptográfico gerado assim:
+     HMACSHA256(base64(Header) + "." + base64(Payload), SEGREDO)
+
+2. O PROCESSO
+
+   A) NA NUVEM (Emissor):
+      O Supabase Cloud gera o token usando o SEGREDO_A.
+      Token = Dados + Hash(Dados + SEGREDO_A).
+
+   B) NO FRONTEND (Transportador):
+      O React recebe esse token da nuvem. Ele não sabe o segredo, apenas armazena 
+      o token e o coloca no Header `Authorization: Bearer ...` das requisições para o banco local.
+
+   C) NO LOCAL (Validador):
+      O PostgREST (motor do Supabase Local) recebe a requisição.
+      Ele lê o token e separa a Assinatura.
+      
+      Para validar, ele pensa: "Se eu pegar os dados desse token e assinar com o MEU
+      segredo local, o resultado é igual à assinatura que veio no token?"
+
+3. O PULO DO GATO
+   Como configuramos o Local (`SUPABASE_AUTH_JWT_SECRET`) com o mesmo SEGREDO_A da nuvem, 
+   a matemática bate.
+   
+   O PostgREST aceita o token como legítimo e extrai o User ID (`sub`) de dentro do Payload.
+   Ele então define a variável de sessão `auth.uid()` com esse ID.
+   
+   Portanto, suas Policies RLS (ex: `auth.uid() = user_id`) funcionam perfeitamente no banco local,
+   mesmo que o usuário tecnicamente nunca tenha feito "login" no servidor local.
+   A confiança é estabelecida puramente pela criptografia (Shared Secret).
+
+   
+================================================================================
+GUIA DE INTEGRAÇÃO TYDA: CLOUD AUTH + LOCAL DATABASE
+================================================================================
+
+Este projeto utiliza uma arquitetura híbrida:
+- AUTENTICAÇÃO: Supabase Cloud.
+- DADOS: Supabase Local.
+
+--------------------------------------------------------------------------------
+🔥 SOLUÇÃO DE ERROS (TROUBLESHOOTING)
+--------------------------------------------------------------------------------
+
+1. ERRO "PGRST301 - No suitable key was found to decode the JWT"
+   Sintoma: O console mostra erro 401 (Unauthorized) ao acessar o banco local.
+   Causa: O Supabase Local tem um "JWT Secret" diferente do Supabase Cloud. O Cloud assina o token, mas o Local não consegue ler.
+
+   SOLUÇÃO PASSO-A-PASSO:
+   1. Vá no Supabase Dashboard (Cloud) > Project Settings > API.
+   2. Copie o "JWT Secret" (mesmo que diga "legacy" ou oculto).
+   3. No seu VS Code, abra o arquivo `supabase/config.toml`.
+   4. Encontre a linha `jwt_secret` dentro de `[auth]`.
+   5. Cole o secret da nuvem: `jwt_secret = "seu-secret-copiado-da-nuvem"`.
+   6. Pare o servidor local: `npx supabase stop`.
+   7. Inicie novamente: `npx supabase start`.
+   8. ATENÇÃO: O terminal vai mostrar novas chaves (anon key / service_role key).
+   9. Copie a NOVA `anon key` e atualize o arquivo `.env` do frontend (VITE_LOCAL_DB_KEY).
+
+--------------------------------------------------------------------------------
+2. CONFIGURAÇÃO GERAL
+--------------------------------------------------------------------------------
+No arquivo `.env` da raiz do projeto React (Vite):
+
+# URL e Key do Projeto CLOUD (Para Login)
+VITE_CLOUD_AUTH_URL="https://seu-projeto.supabase.co"
+VITE_CLOUD_AUTH_KEY="<ANON_KEY_DA_NUVEM>"
+
+# URL e Key do Projeto LOCAL (Para Dados)
+VITE_LOCAL_DB_URL="http://127.0.0.1:54321"
+VITE_LOCAL_DB_KEY="<NOVA_ANON_KEY_LOCAL_POS_RESET>"
+
+--------------------------------------------------------------------------------
+3. RESUMO TÉCNICO
+--------------------------------------------------------------------------------
+O Frontend pega o token do Cloud e o envia para o Local.
+O Local pega esse token e tenta validar a assinatura usando o `jwt_secret`.
+Se as chaves baterem, o RLS funciona e o usuário é identificado.

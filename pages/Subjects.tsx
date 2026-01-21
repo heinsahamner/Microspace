@@ -41,11 +41,13 @@ export const SubjectsPage: React.FC = () => {
             className="group relative overflow-hidden rounded-2xl p-6 transition-all hover:shadow-lg hover:-translate-y-1 aspect-[4/3] flex flex-col justify-between cursor-pointer"
             style={{ backgroundColor: subject.color_hex }}
           >
+            {/* Background Icon Decoration */}
             <div className="absolute -bottom-6 -right-6 text-white opacity-20 rotate-12 group-hover:scale-110 group-hover:opacity-30 transition-all duration-300">
                <Icons.Dynamic name={subject.icon_name} className="w-32 h-32" />
             </div>
             
             <div className="relative z-10 flex-1">
+              {/* Empty spacing for top alignment */}
             </div>
 
             <div className="relative z-10">

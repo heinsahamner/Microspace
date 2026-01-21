@@ -6,18 +6,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: false,
-    rollupOptions: {
-      external: [
-        'react',
-        'react-dom',
-        'react-dom/client',
-        'react-router-dom',
-        '@supabase/supabase-js',
-        '@tanstack/react-query',
-        'react-markdown'
-      ]
-    }
+    sourcemap: false
   },
   server: {
     port: 3000

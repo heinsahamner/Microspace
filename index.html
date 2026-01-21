@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Microspace</title>
+    <title>Microspace Materials</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -11,11 +11,12 @@
         theme: {
           extend: {
             colors: {
+              primary: 'var(--primary-color)',
               gray: {
                 750: '#2d3748',
                 850: '#1a202c', 
-                900: '#121212', 
-                950: '#000000', 
+                900: '#121212', // Material Dark background
+                950: '#000000', // Deep Black
               }
             },
             animation: {
@@ -33,13 +34,17 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+      :root {
+        --primary-color: #7900c5; /* Default Brand Color */
+      }
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #f9fafb;
+        background-color: #f9fafb; /* Light mode default */
       }
       html.dark body {
-        background-color: #000000; 
+        background-color: #000000; /* Deep Black */
       }
+      /* Hide scrollbar for clean horizontal scrolling */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
@@ -48,6 +53,7 @@
         scrollbar-width: none;
       }
       
+      /* Safe area spacing for mobile bottom nav */
       .pb-safe {
         padding-bottom: env(safe-area-inset-bottom);
       }
@@ -63,7 +69,8 @@
     "@tanstack/react-query": "https://esm.sh/@tanstack/react-query@^5.90.16",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "vite": "https://esm.sh/vite@^7.3.1",
-    "react-markdown": "https://esm.sh/react-markdown@9.0.1"
+    "react-markdown": "https://esm.sh/react-markdown@9.0.1",
+    "idb": "https://esm.sh/idb@8.0.0"
   }
 }
 </script>

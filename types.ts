@@ -8,11 +8,13 @@ export interface Group {
   name: string;
   slug: string;
   academic_year: number;
+  icon_name?: string;
 }
 
 export interface Profile {
   id: string;
   username: string;
+  email?: string; 
   avatar_url: string | null;
   background_url: string | null;
   bio: string | null;
@@ -21,7 +23,8 @@ export interface Profile {
   followers_count: number;
   following_count: number;
   group?: Group; 
-  is_following?: boolean; 
+  is_following?: boolean;
+  created_at?: string;
 }
 
 export interface Subject {
@@ -59,9 +62,10 @@ export interface FileData {
   id: string;
   title: string;
   description: string | null;
-  file_url: string | null; 
+  file_url: string | null;
   file_type: string | null;
   size_bytes: number | null;
+  attachments?: FileAttachment[];
   uploader_id: string;
   subject_id: string;
   target_group_id: string; 
@@ -83,6 +87,16 @@ export interface Interaction {
   user_id: string;
   file_id: string;
   type: InteractionType;
+}
+
+export interface Feedback {
+    id: string;
+    user_id: string;
+    content: string;
+    include_logs: boolean;
+    status: 'open' | 'resolved';
+    created_at: string;
+    user?: Profile;
 }
 
 export interface TabItem {

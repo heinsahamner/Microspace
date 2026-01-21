@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Subject, Category, FileData, TabItem } from '../types';
 import { Icons } from '../components/Icons';
 import { Service } from '../services/supabase';
 import { FileCard } from '../components/shared/FileCard';
+import { PostSkeleton } from '../components/shared/Skeleton';
 import { useAuth } from '../contexts/AuthContext';
 
 const TABS: TabItem[] = [
@@ -24,31 +25,9 @@ export const SubjectDetail: React.FC = () => {
   const [files, setFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Search & Filter State
+  const [searchTerm, setSearchTerm] = useState('');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
-
-  const cycleFilter = () => {
-      if (sourceFilter === 'all') setSourceFilter('official');
-      else if (sourceFilter === 'official') setSourceFilter('community');
-      else setSourceFilter('all');
-  };
-
-  const getFilterIcon = () => {
-      if (sourceFilter === 'all') return <Icons.Filter className="w-4 h-4" />;
-      if (sourceFilter === 'official') return <Icons.BadgeCheck className="w-4 h-4" />;
-      return <Icons.Users className="w-4 h-4" />;
-  };
-
-  const getFilterLabel = () => {
-      if (sourceFilter === 'all') return 'Todos';
-      if (sourceFilter === 'official') return 'Oficial';
-      return 'Comunidade';
-  };
-
-  const getFilterColorClass = () => {
-       if (sourceFilter === 'official') return 'bg-blue-50 text-blue-700 border-blue-200';
-       if (sourceFilter === 'community') return 'bg-orange-50 text-orange-700 border-orange-200';
-       return 'bg-gray-50 text-gray-700 border-gray-200';
-  };
 
   useEffect(() => {
     if (!subject && id) {
@@ -73,69 +52,132 @@ export const SubjectDetail: React.FC = () => {
     fetchFiles();
   }, [id, activeTab, sourceFilter, user]);
 
-  if (!subject) return <div className="p-6">Carregando...</div>;
+  const filteredFiles = useMemo(() => {
+      if (!searchTerm) return files;
+      const lowerSearch = searchTerm.toLowerCase();
+      return files.filter(file => 
+          file.title.toLowerCase().includes(lowerSearch) ||
+          file.description?.toLowerCase().includes(lowerSearch)
+      );
+  }, [files, searchTerm]);
+
+  if (!subject) return <div className="p-6 text-center text-gray-500">Carregando informações da matéria...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20" style={{ '--theme-color': subject.color_hex } as React.CSSProperties}>
-      <div className="bg-[var(--theme-color)] text-white pt-8 pb-12 px-6 rounded-b-[2.5rem] relative shadow-lg transition-all duration-300">
-        <div className="md:max-w-4xl md:mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <button onClick={() => navigate(-1)} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                    <Icons.ArrowLeft className="w-6 h-6" />
-                </button>
-                <div className="p-2 bg-white/20 rounded-full backdrop-blur-md">
-                    <Icons.Dynamic name={subject.icon_name} className="w-6 h-6 text-white" />
-                </div>
-            </div>
-            
-            <h1 className="text-3xl font-bold mb-2">{subject.name}</h1>
-            <p className="opacity-90">Explorar materiais compartilhados</p>
-        </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-black pb-20">
+      
+      {/* Modern Minimal Header */}
+      <div className="bg-white dark:bg-[#121212] border-b border-gray-100 dark:border-gray-800 pt-6 pb-6 px-4 sticky top-0 z-20 transition-colors">
+          <div className="md:max-w-5xl md:mx-auto">
+              <div className="flex items-center gap-4 mb-6">
+                   <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500 dark:text-gray-400">
+                      <Icons.ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex-1">
+                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          {subject.name}
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: subject.color_hex }}></div>
+                      </h1>
+                  </div>
+              </div>
+
+              {/* Controls Row */}
+              <div className="flex flex-col gap-4">
+                  {/* Search */}
+                  <div className="relative">
+                      <Icons.Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <input 
+                          type="text" 
+                          placeholder="Filtrar por nome ou conteúdo..."
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder-gray-400"
+                      />
+                  </div>
+
+                  {/* Filter Groups - Horizontal Scroll for Mobile Safety */}
+                  <div className="flex items-center overflow-x-auto no-scrollbar gap-2 pb-2 -mx-4 px-4 w-[calc(100%+2rem)] md:w-auto md:mx-0 md:px-0">
+                      {/* Tabs (Compacted) */}
+                      <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl shrink-0">
+                          {TABS.map((tab) => (
+                              <button
+                                  key={tab.id}
+                                  onClick={() => setActiveTab(tab.id)}
+                                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex-shrink-0 ${
+                                      activeTab === tab.id
+                                          ? 'bg-white dark:bg-[#121212] text-primary shadow-sm'
+                                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                  }`}
+                              >
+                                  {tab.label}
+                              </button>
+                          ))}
+                      </div>
+
+                      <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 shrink-0 hidden sm:block"></div>
+
+                      {/* Source Filter (Compacted) */}
+                      <div className="flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl shrink-0">
+                           <button 
+                              onClick={() => setSourceFilter('all')}
+                              className={`px-2.5 py-1.5 rounded-lg transition-all flex-shrink-0 ${sourceFilter === 'all' ? 'bg-primary shadow-sm text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                              title="Todos"
+                           >
+                               <Icons.Filter className="w-4 h-4" />
+                           </button>
+                           <button 
+                              onClick={() => setSourceFilter('official')}
+                              className={`px-2.5 py-1.5 rounded-lg transition-all flex-shrink-0 ${sourceFilter === 'official' ? 'bg-primary shadow-sm text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                              title="Apenas Oficial"
+                           >
+                               <Icons.BadgeCheck className="w-4 h-4" />
+                           </button>
+                           <button 
+                              onClick={() => setSourceFilter('community')}
+                              className={`px-2.5 py-1.5 rounded-lg transition-all flex-shrink-0 ${sourceFilter === 'community' ? 'bg-primary shadow-sm text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                              title="Apenas Comunidade"
+                           >
+                               <Icons.Users className="w-4 h-4" />
+                           </button>
+                      </div>
+                      
+                      {/* Wider Spacer to prevent clipping */}
+                      <div className="w-8 h-1 flex-shrink-0 md:hidden"></div>
+                  </div>
+              </div>
+          </div>
       </div>
 
-      <div className="md:max-w-4xl md:mx-auto px-4 -mt-8 relative z-10">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            
-            <div className="flex bg-gray-50 p-1 rounded-full w-full md:w-auto">
-                {TABS.map((tab) => (
-                <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 md:flex-none px-6 py-2 text-xs font-bold rounded-full transition-all text-center ${
-                    activeTab === tab.id
-                        ? 'bg-[#7900c5] text-white shadow-md shadow-purple-100'
-                        : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                >
-                    {tab.label}
-                </button>
-                ))}
-            </div>
-
-            <button 
-                onClick={cycleFilter}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all w-full md:w-auto justify-center ${getFilterColorClass()}`}
-            >
-                {getFilterIcon()}
-                <span>{getFilterLabel()}</span>
-                <span className="ml-1 text-[10px] opacity-60 uppercase tracking-wider">Mudar</span>
-            </button>
-
-        </div>
-
+      <div className="md:max-w-5xl md:mx-auto px-4 mt-6">
         <div className="space-y-4">
             {loading ? (
-                <div className="text-center py-12 text-gray-400">Carregando arquivos...</div>
-            ) : files.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
-                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
-                        <Icons.FileText className="w-8 h-8" />
+                <>
+                    <PostSkeleton />
+                    <PostSkeleton />
+                </>
+            ) : filteredFiles.length === 0 ? (
+                <div className="text-center py-20 px-6">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-900 rounded-2xl flex items-center justify-center mx-auto mb-4 text-gray-400 dark:text-gray-600">
+                        <Icons.Dynamic name={subject.icon_name} className="w-8 h-8 opacity-50" />
                     </div>
-                    <p className="text-gray-500 font-medium">Nenhum arquivo encontrado.</p>
+                    <h3 className="text-gray-900 dark:text-white font-bold mb-1">Nada nesta seção.</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {searchTerm ? 'Tente buscar com outro termo.' : 'Seja o primeiro a compartilhar algo aqui!'}
+                    </p>
+                    {!searchTerm && (
+                         <button onClick={() => navigate('/upload')} className="mt-6 text-sm font-bold text-primary hover:underline">
+                             Criar novo material
+                         </button>
+                    )}
                 </div>
             ) : (
-                files.map(file => (
-                    <FileCard key={file.id} file={file} colorHex={subject.color_hex} />
+                filteredFiles.map(file => (
+                    <FileCard 
+                        key={file.id} 
+                        file={file} 
+                        colorHex={subject.color_hex} 
+                        highlightTerm={searchTerm}
+                    />
                 ))
             )}
         </div>

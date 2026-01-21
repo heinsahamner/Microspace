@@ -12,6 +12,7 @@ export const EditProfile: React.FC = () => {
   const [username, setUsername] = useState(profile?.username || '');
   const [loading, setLoading] = useState(false);
 
+  // Image State
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bgFile, setBgFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null);
@@ -44,10 +45,13 @@ export const EditProfile: React.FC = () => {
           let newAvatarUrl = profile.avatar_url;
           let newBgUrl = profile.background_url;
 
+          // Upload images if changed
           if (avatarFile) {
+              // @ts-ignore
               newAvatarUrl = await Service.uploadProfileImage(profile.id, avatarFile, 'avatar');
           }
           if (bgFile) {
+              // @ts-ignore
               newBgUrl = await Service.uploadProfileImage(profile.id, bgFile, 'background');
           }
 
@@ -89,9 +93,11 @@ export const EditProfile: React.FC = () => {
             
             <div className="p-6 space-y-6">
                 
+                {/* Images Section */}
                 <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">Imagens</label>
                     
+                    {/* Background Banner */}
                     <div 
                         className="relative h-32 bg-gray-200 dark:bg-gray-800 rounded-xl overflow-hidden group cursor-pointer"
                         onClick={() => bgInputRef.current?.click()}
@@ -113,6 +119,7 @@ export const EditProfile: React.FC = () => {
                         />
                     </div>
 
+                    {/* Avatar */}
                     <div className="flex justify-center -mt-12 relative z-20">
                         <div 
                             className="w-24 h-24 bg-gray-300 dark:bg-gray-700 rounded-full border-4 border-white dark:border-gray-900 relative cursor-pointer group overflow-hidden"
