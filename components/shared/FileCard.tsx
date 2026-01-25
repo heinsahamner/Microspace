@@ -1,22 +1,114 @@
 import React, { useState } from 'react';
-import { FileData } from '../../types';
+import { FileData, FileAttachment } from '../../types';
 import { Icons } from '../Icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Service } from '../../services/supabase';
+import { DeepLinkService } from '../../services/deepLink';
 import { useNavigate } from 'react-router-dom';
 import { RichTextRenderer } from './RichTextRenderer';
 import { CommentsDrawer } from './CommentsDrawer';
 import { Highlight } from './Highlight';
+import { PollWidget } from './PollWidget';
 
 interface FileCardProps {
   file: FileData;
   colorHex: string;
   onToggleSave?: (id: string, status: boolean) => void;
+  onDelete?: (id: string) => void;
   highlightTerm?: string;
 }
 
-export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave, highlightTerm }) => {
-  const { user } = useAuth();
+const AttachmentViewer: React.FC<{ attachment: FileAttachment }> = ({ attachment }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const isImage = attachment.type.startsWith('image/');
+    const isPDF = attachment.type === 'application/pdf';
+
+    const handleDownload = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        window.open(attachment.url, '_blank');
+    };
+
+    if (isImage) {
+        return (
+            <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 relative group bg-gray-100 dark:bg-black">
+                <img 
+                    src={attachment.url} 
+                    alt={attachment.name} 
+                    className={`w-full object-cover transition-all duration-300 ${isExpanded ? 'max-h-full' : 'max-h-96 cursor-zoom-in'}`}
+                    onClick={() => setIsExpanded(!isExpanded)}
+                />
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={handleDownload} className="p-2 bg-black/50 text-white rounded-lg hover:bg-black/70 backdrop-blur-sm">
+                        <Icons.Download className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (isPDF) {
+        return (
+            <div className="mt-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212]">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded">
+                            <Icons.FileText className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate">{attachment.name}</span>
+                    </div>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={handleDownload}
+                            className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            title="Baixar PDF"
+                        >
+                            <Icons.Download className="w-4 h-4" />
+                        </button>
+                        <button 
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-xs font-bold text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            {isExpanded ? 'Fechar' : 'Ler Arquivo'}
+                        </button>
+                    </div>
+                </div>
+                
+                {isExpanded && (
+                    <div className="w-full h-[500px] bg-gray-200 dark:bg-gray-800 relative">
+                        <iframe 
+                            src={`${attachment.url}#toolbar=0`} 
+                            className="w-full h-full"
+                            title={attachment.name}
+                        />
+                        <div className="absolute bottom-2 right-4 text-[10px] text-gray-500 bg-white/80 dark:bg-black/80 px-2 py-1 rounded backdrop-blur">
+                            Visualização nativa
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="mt-2 flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="flex items-center gap-3 overflow-hidden">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
+                    <Icons.FileText className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{attachment.name}</span>
+                    <span className="text-[10px] text-gray-500">{(attachment.size / 1024).toFixed(1)} KB</span>
+                </div>
+            </div>
+            <button onClick={handleDownload} className="text-[#7900c5] hover:underline text-xs font-bold px-2">
+                Baixar
+            </button>
+        </div>
+    );
+};
+
+export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave, onDelete, highlightTerm }) => {
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   
   const [isLiked, setIsLiked] = useState(file.isLiked);
@@ -25,32 +117,31 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
   const [commentCount, setCommentCount] = useState(file.comments_count || 0);
   const [isAnimating, setIsAnimating] = useState(false);
   
-  // New Drawer State
+  const [showMenu, setShowMenu] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
-  const handleAddToDiary = () => {
-    const title = encodeURIComponent(file.title);
-    const link = encodeURIComponent(window.location.origin + `/subject/${file.subject_id}`);
-    const diaryUrl = `https://diary.microspace.app/tasks/new?title=${title}&link=${link}`;
-    window.open(diaryUrl, '_blank');
-  };
+  const canEdit = user && file.uploader_id === user.id;
+  const canDelete = user && (file.uploader_id === user.id || profile?.role === 'admin');
 
-  const handleDownload = () => {
-    if (file.file_url) {
-        if (file.file_url.startsWith('data:')) {
-            const link = document.createElement('a');
-            link.href = file.file_url;
-            const fileName = file.attachments && file.attachments.length > 0 
-                ? file.attachments[0].name 
-                : `arquivo-${file.title}.pdf`;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else {
-            window.open(file.file_url, '_blank');
-        }
-    }
+  const handleAddToDiary = () => {
+    const payload = {
+        title: file.title,
+        description: `Material de referência: ${file.title}\n\n${file.description || ''}\n\nLink original: ${window.location.origin}/subject/${file.subject_id}`,
+        subject: file.subject?.name || 'Geral',
+        date: 'tomorrow', 
+        priority: 'medium',
+        type: file.category === 'assessment' ? 'exam' : 'homework'
+    };
+
+    // Deep Link com o Diary (não funciona ainda)
+    const diaryUrl = DeepLinkService.generateLink(
+        'https://diary.microspace.site/',
+        'create', 
+        {}, 
+        payload 
+    );
+
+    window.open(diaryUrl, '_blank');
   };
 
   const handleLike = async () => {
@@ -72,9 +163,20 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       if (!user) return;
       const newStatus = !isSaved;
       setIsSaved(newStatus);
-      // @ts-ignore
+      
       await Service.toggleSave(file.id, user.id);
       if (onToggleSave) onToggleSave(file.id, newStatus);
+  };
+
+  const handleDelete = async () => {
+      if(!window.confirm("Tem certeza que deseja excluir esta postagem permanentemente?")) return;
+      try {
+          await Service.deleteFile(file.id);
+          if (onDelete) onDelete(file.id);
+      } catch(e) {
+          alert("Erro ao deletar.");
+          console.error(e);
+      }
   };
 
   const goToProfile = (e: React.MouseEvent) => {
@@ -86,8 +188,44 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
 
   return (
     <>
-    <div className="bg-white dark:bg-[#121212] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md dark:hover:border-gray-700 transition-all">
-      <div className="flex justify-between items-start mb-3">
+    <div className="bg-white dark:bg-[#121212] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md dark:hover:border-gray-700 transition-all relative group">
+      
+      {(canEdit || canDelete) && (
+          <div className="absolute top-2 right-2 z-10">
+              <button 
+                onClick={() => setShowMenu(!showMenu)} 
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                  <Icons.MoreVertical className="w-4 h-4" />
+              </button>
+              
+              {showMenu && (
+                  <div 
+                    className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden z-20 animate-in fade-in zoom-in-95"
+                    onMouseLeave={() => setShowMenu(false)}
+                  >
+                      {canEdit && (
+                          <button 
+                            onClick={() => navigate(`/post/edit/${file.id}`)}
+                            className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2"
+                          >
+                              <Icons.Edit className="w-3 h-3" /> Editar
+                          </button>
+                      )}
+                      {canDelete && (
+                          <button 
+                            onClick={handleDelete}
+                            className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                          >
+                              <Icons.Trash className="w-3 h-3" /> Excluir
+                          </button>
+                      )}
+                  </div>
+              )}
+          </div>
+      )}
+
+      <div className="flex justify-between items-start mb-3 pr-8">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
             <Icons.FileText className="w-6 h-6" />
@@ -116,6 +254,16 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
             className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3" 
             highlightTerm={highlightTerm}
           />
+          
+          {file.attachments && file.attachments.length > 0 && (
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                  {file.attachments.map((att, idx) => (
+                      <AttachmentViewer key={idx} attachment={att} />
+                  ))}
+              </div>
+          )}
+
+          {file.poll && <PollWidget poll={file.poll} />}
       </div>
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-50 dark:border-gray-800">
@@ -137,16 +285,6 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
              <Icons.MessageCircle className="w-5 h-5" />
              <span className="text-xs font-medium">{commentCount}</span>
            </button>
-
-           {file.file_url && file.file_url !== '#' && (
-               <button 
-                 onClick={handleDownload}
-                 className="text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center space-x-1"
-                 title="Baixar/Abrir"
-                >
-                 <Icons.Download className="w-5 h-5" />
-               </button>
-           )}
         </div>
 
         <div className="flex space-x-2">
@@ -170,7 +308,6 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       </div>
     </div>
 
-    {/* Comments Drawer - Isolated */}
     {isCommentsOpen && (
         <CommentsDrawer 
             isOpen={isCommentsOpen} 

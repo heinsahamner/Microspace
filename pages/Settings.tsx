@@ -6,8 +6,6 @@ import { Service } from '../services/supabase';
 import { Icons } from '../components/Icons';
 import { useToast } from '../contexts/ToastContext';
 
-// --- HELPERS ---
-
 const usePreferences = () => {
     const [preferences, setPreferences] = useState(() => {
         const saved = localStorage.getItem('microspace_preferences');
@@ -23,13 +21,11 @@ const usePreferences = () => {
         const newState = { ...preferences, [key]: !preferences[key] };
         setPreferences(newState);
         localStorage.setItem('microspace_preferences', JSON.stringify(newState));
-        return newState[key]; // Return new value
+        return newState[key];
     };
 
     return { preferences, toggle };
 };
-
-// --- COMPONENTS ---
 
 const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
     <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 mt-8 px-2">
@@ -129,8 +125,6 @@ const SettingsModal: React.FC<{ title: string; children: React.ReactNode; onClos
     </div>
 );
 
-// --- MAIN PAGE ---
-
 export const Settings: React.FC = () => {
     const { profile, updateProfile, signOut } = useAuth();
     const { theme, toggleTheme, accentColor, setAccentColor } = useTheme();
@@ -138,27 +132,20 @@ export const Settings: React.FC = () => {
     const { preferences, toggle } = usePreferences();
     const navigate = useNavigate();
     
-    // --- Modals State ---
     const [modalOpen, setModalOpen] = useState<'password' | 'delete' | 'support' | null>(null);
     
-    // --- Password Change State ---
     const [passData, setPassData] = useState({ current: '', new: '', confirm: '' });
     const [passLoading, setPassLoading] = useState(false);
 
-    // --- Delete Account State ---
     const [deleteConfirm, setDeleteConfirm] = useState('');
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    // --- Feedback State ---
     const [feedbackContent, setFeedbackContent] = useState('');
     const [includeLogs, setIncludeLogs] = useState(true);
     const [feedbackLoading, setFeedbackLoading] = useState(false);
 
-    // --- Admin Claim State ---
     const [adminKey, setAdminKey] = useState('');
     const [claimStatus, setClaimStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-
-    // --- Handlers ---
 
     const handleToggle = (key: string, label: string) => {
         const val = toggle(key);
@@ -166,9 +153,9 @@ export const Settings: React.FC = () => {
     };
 
     const handleClearCache = () => {
-        if(window.confirm('Isso limpará dados temporários e recarregará o app. Continuar?')) {
+        if(window.confirm('Isso limpará dados temporários e recarregará o site. Continuar?')) {
             localStorage.clear();
-            localStorage.setItem('theme', theme); // Restore essential
+            localStorage.setItem('theme', theme);
             localStorage.setItem('accentColor', accentColor);
             window.location.reload();
         }
@@ -179,7 +166,7 @@ export const Settings: React.FC = () => {
             profile,
             preferences,
             timestamp: new Date().toISOString(),
-            app_version: '4.5.0'
+            app_version: '0.7.0'
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -199,7 +186,7 @@ export const Settings: React.FC = () => {
             return;
         }
         setPassLoading(true);
-        // Simulate API call - In real implementation use Service.updatePassword
+        // Simulado
         setTimeout(() => {
             setPassLoading(false);
             setModalOpen(null);
@@ -256,7 +243,6 @@ export const Settings: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200">
-            {/* Sticky Header */}
             <div className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
                 <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-4">
                     <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-500 dark:text-gray-400 transition-colors">
@@ -268,7 +254,6 @@ export const Settings: React.FC = () => {
 
             <div className="max-w-2xl mx-auto p-4 pb-24">
                 
-                {/* --- 1. APPEARANCE --- */}
                 <SectionHeader title="Aparência & Acessibilidade" />
                 <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                     <div className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -281,7 +266,7 @@ export const Settings: React.FC = () => {
                         <SettingItem 
                             icon={Icons.Palette} 
                             label="Cor de Destaque" 
-                            subLabel="Personalize a identidade do app"
+                            subLabel="Personalize a identidade do site"
                             action={<ColorPicker current={accentColor} onSelect={setAccentColor} />}
                         />
                         <SettingItem 
@@ -293,7 +278,6 @@ export const Settings: React.FC = () => {
                     </div>
                 </div>
 
-                {/* --- 2. NOTIFICATIONS --- */}
                 <SectionHeader title="Notificações" />
                 <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                     <div className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -311,7 +295,6 @@ export const Settings: React.FC = () => {
                     </div>
                 </div>
 
-                {/* --- 3. DATA & PRIVACY --- */}
                 <SectionHeader title="Dados e Privacidade" />
                 <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                     <div className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -337,7 +320,6 @@ export const Settings: React.FC = () => {
                     </div>
                 </div>
 
-                {/* --- 4. ACCOUNT --- */}
                 <SectionHeader title="Conta" />
                 <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                     <div className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -361,7 +343,6 @@ export const Settings: React.FC = () => {
                     </div>
                 </div>
 
-                {/* --- 5. SUPPORT --- */}
                 <SectionHeader title="Sobre & Suporte" />
                 <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
                     <div className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -373,17 +354,16 @@ export const Settings: React.FC = () => {
                         <SettingItem 
                             icon={Icons.LifeBuoy} 
                             label="Termos de Uso" 
-                            subLabel="v1.2 - Atualizado em 2024"
+                            subLabel="v0.1 - Atualizado em 2026"
                             onClick={() => navigate('/terms')}
                         />
                         <div className="p-4 flex justify-between items-center text-xs text-gray-400 bg-gray-50 dark:bg-gray-900/50">
-                            <span>Microspace App</span>
-                            <span className="font-mono">v4.5.0 (Beta)</span>
+                            <span>Microspace</span>
+                            <span className="font-mono">v0.7.0 (Pré-Alpha)</span>
                         </div>
                     </div>
                 </div>
 
-                {/* --- 6. ADMIN ZONE --- */}
                 <SectionHeader title="Zona Avançada" />
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#121212] dark:to-[#1a1a1a] rounded-2xl p-6 border border-gray-200 dark:border-gray-800 relative overflow-hidden mb-8">
                     <div className="relative z-10">
@@ -431,7 +411,6 @@ export const Settings: React.FC = () => {
                             </div>
                         )}
                     </div>
-                    {/* Background decoration */}
                     <Icons.Shield className="absolute -right-6 -bottom-6 w-32 h-32 text-gray-200 dark:text-gray-800 opacity-50 rotate-12 pointer-events-none" />
                 </div>
 
@@ -443,9 +422,6 @@ export const Settings: React.FC = () => {
 
             </div>
 
-            {/* --- MODALS --- */}
-
-            {/* Change Password */}
             {modalOpen === 'password' && (
                 <SettingsModal 
                     title="Alterar Senha" 
@@ -473,7 +449,6 @@ export const Settings: React.FC = () => {
                 </SettingsModal>
             )}
 
-            {/* Delete Account */}
             {modalOpen === 'delete' && (
                 <SettingsModal 
                     title="Excluir Conta Permanentemente" 
@@ -507,7 +482,6 @@ export const Settings: React.FC = () => {
                 </SettingsModal>
             )}
 
-            {/* Support - Now Connected */}
             {modalOpen === 'support' && (
                 <SettingsModal 
                     title="Reportar um Problema" 

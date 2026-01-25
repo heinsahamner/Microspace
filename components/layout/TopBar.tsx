@@ -20,7 +20,6 @@ export const TopBar: React.FC = () => {
   const [showCmdPalette, setShowCmdPalette] = useState(false);
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
 
-  // Global Keyboard Shortcut for Command Palette
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -39,9 +38,7 @@ export const TopBar: React.FC = () => {
 
   const toggleSubjectsMenu = async () => {
     if (!showSubjectsMenu) {
-        // Fetch only if opening
         const subs = await Service.getAllSubjects();
-        // Filter by user's group
         if (profile?.group_id) {
              setAllSubjects(subs.filter(s => s.group_id === profile.group_id));
         } else {
@@ -60,7 +57,6 @@ export const TopBar: React.FC = () => {
     { path: '/backpack', label: 'Mochila' },
   ];
 
-  // Helper for App List Item in About Modal
   const AppItem = ({ icon: Icon, title, desc, url, colorClass }: any) => (
       <a 
         href={url}
@@ -85,10 +81,8 @@ export const TopBar: React.FC = () => {
     <>
     <header className="sticky top-0 z-40 bg-white dark:bg-black border-b border-gray-100 dark:border-gray-900 shadow-sm transition-colors duration-200">
       <div className="w-full">
-        {/* Main Header Row */}
         <div className="px-4 py-3 flex items-center justify-between relative">
             
-            {/* Left: Quick Access */}
             <div className="flex items-center space-x-2 z-20">
                  <button onClick={toggleSubjectsMenu} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-300 relative">
                     <Icons.MoreVertical className="w-6 h-6" />
@@ -117,14 +111,11 @@ export const TopBar: React.FC = () => {
                 </button>
             </div>
 
-            {/* Center: Absolute Centered Logo with Hover Effect */}
             <div className="absolute left-1/2 transform -translate-x-1/2 z-10 cursor-pointer group" onClick={() => setShowAbout(true)}>
                 <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white transition-all duration-300 group-hover:text-primary group-hover:scale-105 inline-block animate-float">Microspace</span>
             </div>
 
-            {/* Right: Actions & Profile */}
             <div className="flex items-center space-x-3 z-20">
-                {/* Global Search Trigger */}
                 <button 
                     onClick={() => setShowCmdPalette(true)}
                     className="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors"
@@ -155,7 +146,6 @@ export const TopBar: React.FC = () => {
                             <button onClick={() => { navigate(`/u/${profile?.id}`); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center space-x-2">
                                 <Icons.User className="w-4 h-4" /> <span>Meu Perfil</span>
                             </button>
-                            {/* Upload Link in Menu for Mobile */}
                             <button onClick={() => { navigate('/upload'); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg flex items-center space-x-2 md:hidden">
                                 <Icons.Upload className="w-4 h-4" /> <span>Publicar Material</span>
                             </button>
@@ -179,7 +169,6 @@ export const TopBar: React.FC = () => {
             </div>
         </div>
 
-        {/* Desktop Navigation Tabs */}
         <div className="hidden md:block pb-1 px-4">
             <div className="flex justify-center">
                  <div className="flex space-x-1 p-1 rounded-full">
@@ -202,22 +191,17 @@ export const TopBar: React.FC = () => {
       </div>
     </header>
 
-    {/* Command Palette */}
     <CommandPalette isOpen={showCmdPalette} onClose={() => setShowCmdPalette(false)} />
 
-    {/* Modern About / Ecosystem Modal */}
     {showAbout && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ zIndex: 100 }}>
-            {/* Backdrop with Blur - Click to close */}
             <div 
                 className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md transition-opacity animate-in fade-in" 
                 onClick={() => setShowAbout(false)}
             />
 
-            {/* Modal Card */}
             <div className="relative w-full max-w-sm bg-white dark:bg-[#121212] rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200">
                 
-                {/* Header */}
                 <div className="flex justify-between items-center p-6 pb-2">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
@@ -237,36 +221,34 @@ export const TopBar: React.FC = () => {
                     </button>
                 </div>
 
-                {/* Apps List */}
                 <div className="p-4 space-y-2">
                     <AppItem 
                         title="Fórum" 
                         desc="Comunidade e dúvidas" 
                         icon={Icons.MessageCircle} 
-                        url="https://forum.microspace.app" 
+                        url="https://forumcefet.site" 
                         colorClass="text-blue-600 bg-blue-50 dark:bg-blue-900/20"
                     />
                     <AppItem 
                         title="Diary" 
                         desc="Agenda e organização" 
                         icon={Icons.BookOpen} 
-                        url="https://diary.microspace.app"
+                        url="https://diary.microspace.site"
                         colorClass="text-pink-600 bg-pink-50 dark:bg-pink-900/20"
                     />
                     <AppItem 
                         title="Notes" 
                         desc="Caderno digital inteligente" 
                         icon={(props: any) => <Icons.Dynamic name="penTool" {...props} />} 
-                        url="https://notes.microspace.app"
+                        url="https://notes.microspace.site"
                         colorClass="text-amber-600 bg-amber-50 dark:bg-amber-900/20"
                     />
                 </div>
 
-                {/* Footer */}
                 <div className="p-6 pt-2 text-center">
                     <div className="w-12 h-1 bg-gray-100 dark:bg-gray-800 rounded-full mx-auto mb-4"></div>
                     <p className="text-[10px] text-gray-300 dark:text-gray-600 font-medium uppercase tracking-widest">
-                        Versão 4.5.0 (Beta)
+                        Versão 0.7.0 (Pré-Alpha)
                     </p>
                 </div>
             </div>

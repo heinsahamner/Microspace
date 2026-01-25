@@ -5,7 +5,6 @@ import { ToastProvider } from './contexts/ToastContext';
 import { TopBar } from './components/layout/TopBar';
 import { MobileNav } from './components/layout/MobileNav';
 
-// Pages
 import { Dashboard } from './pages/Dashboard';
 import { SubjectsPage } from './pages/Subjects';
 import { SubjectDetail } from './pages/SubjectDetail';
@@ -19,8 +18,8 @@ import { Settings } from './pages/Settings';
 import { Terms } from './pages/Terms';
 import { AdminPanel } from './pages/AdminPanel';
 import { AdminClaim } from './pages/AdminClaim';
+import { Diagnostic } from './pages/Diagnostic';
 
-// Auth Pages
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
@@ -70,12 +69,12 @@ const App: React.FC = () => {
         <ToastProvider>
             <Router>
                 <Routes>
-                    {/* Public Auth Routes */}
                     <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
                     <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
                     <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>} />
+                    
+                    <Route path="/diagnostic" element={<Diagnostic />} />
 
-                    {/* Protected Routes */}
                     <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                     <Route path="/subjects" element={<ProtectedRoute><SubjectsPage /></ProtectedRoute>} />
                     <Route path="/subject/:id" element={<ProtectedRoute><SubjectDetail /></ProtectedRoute>} />
@@ -83,16 +82,15 @@ const App: React.FC = () => {
                     <Route path="/official" element={<ProtectedRoute><FeedPage type="official" /></ProtectedRoute>} />
                     <Route path="/backpack" element={<ProtectedRoute><Backpack /></ProtectedRoute>} />
                     <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+                    <Route path="/post/edit/:id" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
                     <Route path="/u/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
                     <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                     <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
                     
-                    {/* Admin Routes */}
                     <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
                     <Route path="/claim-admin" element={<ProtectedRoute><AdminClaim /></ProtectedRoute>} />
                     
-                    {/* Fallback */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </Router>

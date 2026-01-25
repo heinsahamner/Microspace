@@ -5,8 +5,6 @@ import { Service } from '../services/supabase';
 import { Subject, Group, Profile, Role, Feedback } from '../types';
 import { Icons, availableIcons } from '../components/Icons';
 
-// --- TYPES & CONSTANTS ---
-
 type AdminView = 'dashboard' | 'users' | 'groups' | 'subjects' | 'feedbacks';
 
 const THEME_COLORS = [
@@ -14,8 +12,6 @@ const THEME_COLORS = [
   '#10b981', '#84cc16', '#f59e0b', '#f97316', 
   '#ef4444', '#db2777', '#64748b', '#18181b'
 ];
-
-// --- SHARED COMPONENTS ---
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
   <div className={`bg-white dark:bg-[#121212] border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm ${className}`}>
@@ -51,32 +47,26 @@ const ActionButton = ({ onClick, icon: Icon, variant = 'default', title }: any) 
     );
 };
 
-// --- MAIN PAGE COMPONENT ---
-
 export const AdminPanel: React.FC = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<AdminView>('dashboard');
   
-  // Data
   const [stats, setStats] = useState({ users: 0, groups: 0, files: 0, storage: '0' });
   const [users, setUsers] = useState<Profile[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   
-  // UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'members'>('create');
   const [editingItem, setEditingItem] = useState<any>(null);
   
-  // Specific UI State
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
   const [originalSubjectName, setOriginalSubjectName] = useState('');
 
-  // Initial Load
   useEffect(() => {
     if (profile?.role !== 'admin') {
         navigate('/');
@@ -86,7 +76,6 @@ export const AdminPanel: React.FC = () => {
   }, [profile, currentView]);
 
   const loadData = async () => {
-      // Parallel loading for better performance
       const promises: Promise<any>[] = [Service.getGroups(), Service.getAllUsers()];
       
       let statsIndex = -1;
@@ -116,8 +105,6 @@ export const AdminPanel: React.FC = () => {
       if (currentView === 'feedbacks' && feedbacksIndex !== -1) setFeedbacks(results[feedbacksIndex] as Feedback[]);
   };
 
-  // --- ACTIONS ---
-
   const handleUserUpdate = async (userId: string, field: 'role' | 'group_id', value: string) => {
       if (userId === user?.id && field === 'role' && value !== 'admin') {
           if(!window.confirm("Você está prestes a remover seus próprios privilégios de administrador. Continuar?")) return;
@@ -145,8 +132,6 @@ export const AdminPanel: React.FC = () => {
       await Service.resolveFeedback(id);
       loadData();
   };
-
-  // --- RENDERERS ---
 
   const SidebarItem = ({ id, label, icon: Icon }: { id: AdminView, label: string, icon: any }) => (
       <button 
@@ -190,7 +175,6 @@ export const AdminPanel: React.FC = () => {
               ))}
           </div>
 
-          {/* Recent Activity Mockup */}
           <Card className="overflow-hidden">
               <div className="p-6 border-b border-gray-100 dark:border-gray-800">
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white">Atividade Recente do Sistema</h3>
@@ -309,7 +293,6 @@ export const AdminPanel: React.FC = () => {
   )};
 
   const renderGroups = () => {
-      // Group Actions
       const handleSave = async (e: React.FormEvent) => {
           e.preventDefault();
           if (modalMode === 'create') await Service.createGroup(editingItem.name, editingItem.academic_year, editingItem.icon_name);
@@ -366,7 +349,6 @@ export const AdminPanel: React.FC = () => {
               )})}
           </div>
 
-          {/* GROUP MODAL (Create/Edit) */}
           {isModalOpen && (modalMode === 'create' || modalMode === 'edit') && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
                   <Card className="w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
@@ -401,7 +383,6 @@ export const AdminPanel: React.FC = () => {
               </div>
           )}
 
-          {/* MEMBERS MODAL */}
           {isModalOpen && modalMode === 'members' && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
                   <Card className="w-full max-w-lg flex flex-col max-h-[80vh] shadow-2xl animate-in zoom-in-95">
@@ -470,13 +451,12 @@ export const AdminPanel: React.FC = () => {
       };
 
       const openEditSubject = (subject: Subject) => {
-          // Identify other groups that have this same subject (by name)
           const relatedGroupIds = subjects
             .filter(s => s.name.toLowerCase() === subject.name.toLowerCase())
             .map(s => s.group_id);
           
           setEditingItem({ ...subject });
-          setOriginalSubjectName(subject.name); // Store original name
+          setOriginalSubjectName(subject.name);
           setSelectedGroupIds(relatedGroupIds);
           setModalMode('edit');
           setIsModalOpen(true);
@@ -529,11 +509,9 @@ export const AdminPanel: React.FC = () => {
               })}
           </div>
 
-          {/* SUBJECT MODAL */}
           {isModalOpen && (
               <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
                   <Card className="w-full max-w-2xl p-0 shadow-2xl animate-in zoom-in-95 flex flex-col md:flex-row overflow-hidden max-h-[90vh]">
-                      {/* Left: Form */}
                       <div className="flex-1 p-8 space-y-6 overflow-y-auto">
                           <h3 className="text-xl font-bold text-gray-900 dark:text-white">{modalMode === 'create' ? 'Nova Matéria' : 'Editar Matéria'}</h3>
                           <div>
@@ -576,7 +554,6 @@ export const AdminPanel: React.FC = () => {
                           </div>
                       </div>
 
-                      {/* Right: Icon & Preview */}
                       <div className="w-full md:w-72 bg-gray-50 dark:bg-[#181818] border-l border-gray-100 dark:border-gray-800 p-8 flex flex-col">
                           <div className="mb-6">
                               <label className="block text-xs font-bold text-gray-500 mb-2 uppercase text-center">Preview</label>
@@ -678,7 +655,6 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black flex flex-col md:flex-row font-inter overflow-hidden">
-        {/* SIDEBAR */}
         <aside className="w-full md:w-64 bg-white dark:bg-[#121212] border-r border-gray-100 dark:border-gray-800 flex flex-col z-20 shadow-xl md:shadow-none">
             <div className="p-6">
                 <div className="flex items-center space-x-3 text-[#7900c5]">
@@ -708,7 +684,6 @@ export const AdminPanel: React.FC = () => {
             </div>
         </aside>
 
-        {/* MAIN CONTENT AREA */}
         <main className="flex-1 overflow-y-auto h-screen scroll-smooth bg-gray-50 dark:bg-black">
             <div className="max-w-7xl mx-auto p-6 md:p-12 pb-24">
                 {currentView === 'dashboard' && renderDashboard()}

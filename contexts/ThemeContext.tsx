@@ -20,7 +20,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return localStorage.getItem('accentColor') || '#7900c5';
   });
 
-  // Handle Dark/Light Mode
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -31,7 +30,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Handle Dynamic Brand Color
   useEffect(() => {
       const root = window.document.documentElement;
       root.style.setProperty('--primary-color', accentColor);

@@ -6,16 +6,13 @@ interface HighlightProps {
 }
 
 export const Highlight: React.FC<HighlightProps> = ({ text, term }) => {
-    // If text is not a string (e.g., nested React nodes) or no term, return as is
     if (typeof text !== 'string' || !term || !term.trim()) {
         return <>{text}</>;
     }
 
     const trimmedTerm = term.trim();
-    // Escape regex special characters to prevent crashes
     const escapedTerm = trimmedTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     
-    // Split by the term, capturing the delimiter (the term itself)
     const parts = text.split(new RegExp(`(${escapedTerm})`, 'gi'));
 
     return (

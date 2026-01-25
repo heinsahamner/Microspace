@@ -9,13 +9,11 @@ import { Icons } from '../../components/Icons';
 export const Register: React.FC = () => {
     const { signUp } = useAuth();
     
-    // Form State
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
     const [selectedGroup, setSelectedGroup] = useState('');
     
-    // UI State
     const [groups, setGroups] = useState<Group[]>([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);

@@ -1,3 +1,4 @@
+
 export type Role = 'student' | 'teacher' | 'admin';
 export type Category = 'summary' | 'activity' | 'assessment';
 export type SourceType = 'community' | 'official';
@@ -58,6 +59,36 @@ export interface FileAttachment {
     size: number;
 }
 
+export interface PollOption {
+    id: string;
+    text: string;
+    votes: number;
+}
+
+export interface Poll {
+    id: string;
+    file_id: string;
+    question: string;
+    options: PollOption[];
+    total_votes: number;
+    user_vote_option_id?: string | null;
+}
+
+export interface Flashcard {
+    id: string;
+    front: string;
+    back: string;
+}
+
+export interface FlashcardDeck {
+    id: string;
+    subject_id: string;
+    title: string;
+    creator_id: string;
+    cards_count: number;
+    cards?: Flashcard[];
+}
+
 export interface FileData {
   id: string;
   title: string;
@@ -79,7 +110,8 @@ export interface FileData {
   uploader?: Profile; 
   subject?: Subject; 
   isLiked?: boolean; 
-  isSaved?: boolean; 
+  isSaved?: boolean;
+  poll?: Poll | null;
 }
 
 export interface Interaction {
@@ -100,7 +132,7 @@ export interface Feedback {
 }
 
 export interface TabItem {
-  id: Category;
+  id: Category | 'flashcards';
   label: string;
 }
 

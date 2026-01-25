@@ -22,7 +22,6 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
     const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    // Auto-scroll logic
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -36,7 +35,6 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
         return () => { document.body.style.overflow = 'unset'; };
     }, [isOpen, fileId]);
 
-    // Auto-focus textarea when replying
     useEffect(() => {
         if (replyingTo && textareaRef.current) {
             textareaRef.current.focus();
@@ -60,18 +58,10 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
 
         await Service.addComment(fileId, currentUser.id, newComment, parentId);
         
-        // Refresh & Reset
         // @ts-ignore
         const updated = await Service.getComments(fileId, currentUser.id);
         setComments(updated);
         
-        // Calculate total comments properly (including replies if flatten, but here simplistic)
-        // Note: The service currently returns top-level comments with nested replies in some versions, 
-        // or flat list. Assuming Service.getComments returns recursive structure for UI but logic needs flat count.
-        // For simplicity, we increment blindly or need a recursive counter. 
-        // Let's assume onUpdateCount just wants a signal or current length + 1
-        // We'll rely on the parent to refetch or just optimistic increment.
-        // Better: count all nodes.
         const countNodes = (nodes: Comment[]): number => nodes.reduce((acc, c) => acc + 1 + (c.replies ? countNodes(c.replies) : 0), 0);
         onUpdateCount(countNodes(updated));
 
@@ -79,7 +69,6 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
         setReplyingTo(null);
         setIsSubmitting(false);
         
-        // Scroll to bottom
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     };
 
@@ -96,7 +85,6 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
 
     const toggleLike = async (commentId: string) => {
         await Service.toggleCommentLike(commentId, currentUser.id);
-        // Optimistic UI could happen here, but fast refresh is okay for now
         // @ts-ignore
         const updated = await Service.getComments(fileId, currentUser.id);
         setComments(updated);
@@ -106,7 +94,6 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
 
     const CommentItem: React.FC<{ comment: Comment, depth?: number }> = ({ comment, depth = 0 }) => (
         <div className={`relative ${depth > 0 ? 'ml-9 mt-3' : 'mt-4'}`}>
-            {/* Thread Line */}
             {depth > 0 && (
                 <div className="absolute -left-[22px] top-0 w-3 h-3 border-l-2 border-b-2 border-gray-200 dark:border-gray-700 rounded-bl-xl"></div>
             )}
@@ -162,10 +149,8 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
                 </div>
             </div>
 
-            {/* Render Replies */}
             {comment.replies && comment.replies.map(reply => (
                 <div key={reply.id} className="relative">
-                    {/* Vertical Thread Line Extension */}
                     <div className="absolute left-[15px] top-[-10px] bottom-0 w-px bg-gray-200 dark:bg-gray-800 -z-10"></div>
                     <CommentItem comment={reply} depth={depth + 1} />
                 </div>
@@ -175,13 +160,10 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
 
     return (
         <div className="fixed inset-0 z-[60] flex justify-end">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
 
-            {/* Drawer */}
             <div className="relative w-full md:w-[480px] h-full bg-white dark:bg-[#121212] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-100 dark:border-gray-800">
                 
-                {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md z-10 sticky top-0">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         Comentários <span className="text-gray-400 text-sm font-normal">({comments.reduce((acc, c) => acc + 1 + (c.replies?.length || 0), 0)})</span>
@@ -191,7 +173,6 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
                     </button>
                 </div>
 
-                {/* List */}
                 <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
                     {loading ? (
                         <div className="space-y-4">
@@ -221,7 +202,6 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
                     )}
                 </div>
 
-                {/* Input Footer */}
                 <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#121212]">
                     {replyingTo && (
                         <div className="flex justify-between items-center mb-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-bold animate-in slide-in-from-bottom-2">

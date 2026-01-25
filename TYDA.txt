@@ -155,3 +155,351 @@ VITE_LOCAL_DB_KEY="<NOVA_ANON_KEY_LOCAL_POS_RESET>"
 O Frontend pega o token do Cloud e o envia para o Local.
 O Local pega esse token e tenta validar a assinatura usando o `jwt_secret`.
 Se as chaves baterem, o RLS funciona e o usuário é identificado.
+
+-- =============================================================================
+-- BEGIN SQL SCRIPT
+-- =============================================================================
+
+-- 1. EXTENSIONS
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 2. TABLES
+-- =============================================================================
+
+-- GROUPS (Turmas)
+CREATE TABLE IF NOT EXISTS public.groups (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    academic_year INTEGER NOT NULL,
+    icon_name TEXT DEFAULT 'users',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- PROFILES (Users)
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT, -- Added field for Admin visibility
+    avatar_url TEXT,
+    background_url TEXT,
+    bio TEXT,
+    role TEXT DEFAULT 'student' CHECK (role IN ('student', 'teacher', 'admin')),
+    group_id UUID REFERENCES public.groups(id) ON DELETE SET NULL,
+    followers_count INTEGER DEFAULT 0,
+    following_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- SUBJECTS (Matérias)
+CREATE TABLE IF NOT EXISTS public.subjects (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    color_hex TEXT DEFAULT '#7900c5',
+    icon_name TEXT DEFAULT 'book',
+    group_id UUID REFERENCES public.groups(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- FILES (Posts/Materials)
+CREATE TABLE IF NOT EXISTS public.files (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    file_url TEXT,
+    file_type TEXT,
+    size_bytes BIGINT,
+    attachments JSONB DEFAULT '[]'::jsonb,
+    uploader_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES public.subjects(id) ON DELETE CASCADE,
+    target_group_id UUID REFERENCES public.groups(id) ON DELETE CASCADE,
+    category TEXT CHECK (category IN ('summary', 'activity', 'assessment', 'all')),
+    source_type TEXT DEFAULT 'community' CHECK (source_type IN ('community', 'official')),
+    year_reference INTEGER,
+    views_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- COMMENTS
+CREATE TABLE IF NOT EXISTS public.comments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    file_id UUID REFERENCES public.files(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    parent_id UUID REFERENCES public.comments(id) ON DELETE CASCADE,
+    is_pinned BOOLEAN DEFAULT FALSE,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- INTERACTIONS
+CREATE TABLE IF NOT EXISTS public.likes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    file_id UUID REFERENCES public.files(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(user_id, file_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.comment_likes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    comment_id UUID REFERENCES public.comments(id) ON DELETE CASCADE,
+    UNIQUE(user_id, comment_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.follows (
+    follower_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    following_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    PRIMARY KEY (follower_id, following_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.saves (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    file_id UUID REFERENCES public.files(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(user_id, file_id)
+);
+
+-- FEEDBACKS (System Reports)
+CREATE TABLE IF NOT EXISTS public.feedbacks (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    content TEXT NOT NULL,
+    include_logs BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- --- NEW FEATURES: POLLS ---
+CREATE TABLE IF NOT EXISTS public.polls (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    file_id UUID REFERENCES public.files(id) ON DELETE CASCADE,
+    question TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.poll_options (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    poll_id UUID REFERENCES public.polls(id) ON DELETE CASCADE,
+    text TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.poll_votes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    poll_id UUID REFERENCES public.polls(id) ON DELETE CASCADE,
+    option_id UUID REFERENCES public.poll_options(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(poll_id, user_id)
+);
+
+-- --- NEW FEATURES: FLASHCARDS ---
+CREATE TABLE IF NOT EXISTS public.flashcard_decks (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    subject_id UUID REFERENCES public.subjects(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    creator_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.flashcards (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    deck_id UUID REFERENCES public.flashcard_decks(id) ON DELETE CASCADE,
+    front TEXT NOT NULL,
+    back TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 3. STORAGE BUCKETS
+-- =============================================================================
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('materials', 'materials', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('profiles', 'profiles', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 4. FUNCTIONS (MOVED UP: MUST EXIST BEFORE POLICIES)
+-- =============================================================================
+
+-- Helper to check admin status securely
+CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (SELECT 1 FROM public.profiles WHERE id = user_id AND role = 'admin');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- HANDLE NEW USER (Auto-create profile on Auth Signup)
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS TRIGGER AS $$
+DECLARE
+  is_first_user BOOLEAN;
+BEGIN
+  -- Check if any admin exists. If 0, first user becomes admin.
+  SELECT NOT EXISTS (SELECT 1 FROM public.profiles WHERE role = 'admin') INTO is_first_user;
+
+  INSERT INTO public.profiles (id, username, email, avatar_url, group_id, role)
+  VALUES (
+    new.id, 
+    COALESCE(new.raw_user_meta_data->>'full_name', 'Novo Usuário'), 
+    new.email, -- Sync Email here
+    new.raw_user_meta_data->>'avatar_url',
+    (new.raw_user_meta_data->>'group_id')::uuid,
+    CASE WHEN is_first_user THEN 'admin' ELSE 'student' END
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ADMIN CLAIM RPC (The Master Key)
+CREATE OR REPLACE FUNCTION public.promote_me(secret_key TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+  -- ⬇️⬇️⬇️ SECURITY KEY ⬇️⬇️⬇️
+  IF secret_key = 'A9f3K7Q2mX8R5LZ' THEN
+    UPDATE public.profiles
+    SET role = 'admin'
+    WHERE id = auth.uid();
+    RETURN TRUE;
+  ELSE
+    RETURN FALSE;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- INCREMENT POLL VOTE (Helper)
+CREATE OR REPLACE FUNCTION increment_poll_vote(option_id UUID)
+RETURNS VOID AS $$
+-- Note: In a real world, we'd compute total from poll_votes count, 
+-- but storing denormalized count on poll_options is faster for read.
+-- For this simple implementation, we assume just inserting row is enough and Client/Service counts them, 
+-- OR we don't have a 'votes' column on options. The TypeScript code assumes options have votes count.
+-- Let's stick to calculating it in the application layer via join count for now to avoid triggers complexity.
+BEGIN
+  -- This is a placeholder if we wanted atomic increments
+  RETURN; 
+END;
+$$ LANGUAGE plpgsql;
+
+-- 5. TRIGGERS
+-- =============================================================================
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+
+-- 6. ROW LEVEL SECURITY (RLS) & POLICIES
+-- =============================================================================
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedbacks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.polls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.poll_options ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.poll_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flashcard_decks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flashcards ENABLE ROW LEVEL SECURITY;
+
+-- 6.1 READ POLICIES
+DROP POLICY IF EXISTS "Public Read Profiles" ON public.profiles;
+CREATE POLICY "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Groups" ON public.groups;
+CREATE POLICY "Public Read Groups" ON public.groups FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Subjects" ON public.subjects;
+CREATE POLICY "Public Read Subjects" ON public.subjects FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Files" ON public.files;
+CREATE POLICY "Public Read Files" ON public.files FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Comments" ON public.comments;
+CREATE POLICY "Public Read Comments" ON public.comments FOR SELECT USING (true);
+
+-- New Read Policies
+CREATE POLICY "Public Read Polls" ON public.polls FOR SELECT USING (true);
+CREATE POLICY "Public Read Poll Options" ON public.poll_options FOR SELECT USING (true);
+CREATE POLICY "Public Read Poll Votes" ON public.poll_votes FOR SELECT USING (true);
+CREATE POLICY "Public Read Decks" ON public.flashcard_decks FOR SELECT USING (true);
+CREATE POLICY "Public Read Flashcards" ON public.flashcards FOR SELECT USING (true);
+
+-- 6.2 WRITE POLICIES
+-- Profiles
+DROP POLICY IF EXISTS "Users edit own profile" ON public.profiles;
+CREATE POLICY "Users edit own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Files
+DROP POLICY IF EXISTS "Users create files" ON public.files;
+CREATE POLICY "Users create files" ON public.files FOR INSERT WITH CHECK (auth.uid() = uploader_id);
+
+DROP POLICY IF EXISTS "Users edit own files" ON public.files;
+CREATE POLICY "Users edit own files" ON public.files FOR UPDATE USING (auth.uid() = uploader_id);
+
+DROP POLICY IF EXISTS "Users delete own files" ON public.files;
+CREATE POLICY "Users delete own files" ON public.files FOR DELETE USING (auth.uid() = uploader_id);
+
+-- Polls (Tied to files, so implicit permission logic usually applies, but keeping simple)
+CREATE POLICY "Users create polls" ON public.polls FOR INSERT WITH CHECK (true); -- Ideally check file owner
+CREATE POLICY "Users create options" ON public.poll_options FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users vote" ON public.poll_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Flashcards
+CREATE POLICY "Users create decks" ON public.flashcard_decks FOR INSERT WITH CHECK (auth.uid() = creator_id);
+CREATE POLICY "Users create cards" ON public.flashcards FOR INSERT WITH CHECK (true);
+
+-- Comments
+DROP POLICY IF EXISTS "Users comment" ON public.comments;
+CREATE POLICY "Users comment" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users delete own comment" ON public.comments;
+CREATE POLICY "Users delete own comment" ON public.comments FOR DELETE USING (auth.uid() = user_id);
+
+-- Feedbacks
+DROP POLICY IF EXISTS "Users create feedback" ON public.feedbacks;
+CREATE POLICY "Users create feedback" ON public.feedbacks FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admins read feedbacks" ON public.feedbacks;
+CREATE POLICY "Admins read feedbacks" ON public.feedbacks FOR SELECT USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins update feedbacks" ON public.feedbacks;
+CREATE POLICY "Admins update feedbacks" ON public.feedbacks FOR UPDATE USING (public.is_admin(auth.uid()));
+
+-- 6.3 ADMIN OMNIPOTENCE (Requires is_admin function)
+DROP POLICY IF EXISTS "Admins All Groups" ON public.groups;
+CREATE POLICY "Admins All Groups" ON public.groups USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins All Subjects" ON public.subjects;
+CREATE POLICY "Admins All Subjects" ON public.subjects USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins All Profiles" ON public.profiles;
+CREATE POLICY "Admins All Profiles" ON public.profiles USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins Delete Files" ON public.files;
+CREATE POLICY "Admins Delete Files" ON public.files FOR DELETE USING (public.is_admin(auth.uid()));
+
+
+-- 7. STORAGE POLICIES
+-- =============================================================================
+DROP POLICY IF EXISTS "Public Read Materials" ON storage.objects;
+CREATE POLICY "Public Read Materials" ON storage.objects FOR SELECT USING (bucket_id = 'materials');
+
+DROP POLICY IF EXISTS "Authenticated Upload Materials" ON storage.objects;
+CREATE POLICY "Authenticated Upload Materials" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'materials' AND auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Public Read Profiles" ON storage.objects;
+CREATE POLICY "Public Read Profiles" ON storage.objects FOR SELECT USING (bucket_id = 'profiles');
+
+DROP POLICY IF EXISTS "Authenticated Upload Profiles" ON storage.objects;
+CREATE POLICY "Authenticated Upload Profiles" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'profiles' AND auth.role() = 'authenticated');
+
+-- =============================================================================
+-- END SCRIPT
+-- =============================================================================

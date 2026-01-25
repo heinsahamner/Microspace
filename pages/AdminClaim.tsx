@@ -1,3 +1,4 @@
+// Não usado
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Service } from '../services/supabase';
@@ -18,7 +19,6 @@ export const AdminClaim: React.FC = () => {
         
         if (success) {
             setStatus('success');
-            // Force a reload to refresh the AuthContext profile role
             setTimeout(() => {
                 window.location.href = '/admin';
             }, 1500);

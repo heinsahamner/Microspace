@@ -28,18 +28,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch subjects for search
   useEffect(() => {
     if (isOpen && profile?.group_id) {
       Service.getSubjects(profile.group_id).then(setSubjects);
       setQuery('');
       setActiveIndex(0);
-      // Focus input after animation
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen, profile]);
 
-  // Define static commands
   const staticCommands: CommandItemType[] = [
     { id: 'nav-dash', label: 'Ir para Dashboard', icon: Icons.Home, group: 'Navegação', action: () => navigate('/') },
     { id: 'nav-backpack', label: 'Minha Mochila', icon: Icons.Backpack, group: 'Navegação', action: () => navigate('/backpack') },
@@ -53,7 +50,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     { id: 'sys-logout', label: 'Sair da Conta', icon: Icons.LogOut, group: 'Ações', action: () => signOut() },
   ];
 
-  // Combine and filter items
   const filteredItems = useMemo(() => {
     const subjectCommands: CommandItemType[] = subjects.map(sub => ({
       id: `sub-${sub.id}`,
@@ -74,7 +70,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     );
   }, [query, subjects, profile]);
 
-  // Keyboard Navigation
   useEffect(() => {
     if (!isOpen) return;
 
@@ -101,12 +96,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen, filteredItems, activeIndex, onClose]);
 
-  // Ensure active index is valid when list changes
   useEffect(() => {
     setActiveIndex(0);
   }, [filteredItems.length]);
 
-  // Scroll active item into view
   useEffect(() => {
     if (listRef.current) {
       const activeElement = listRef.current.children[activeIndex] as HTMLElement;
@@ -120,16 +113,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] px-4">
-      {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-white/60 dark:bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
         onClick={onClose}
       />
 
-      {/* Palette Container */}
       <div className="relative w-full max-w-xl bg-white dark:bg-[#121212] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-top-4 duration-200">
         
-        {/* Search Input */}
         <div className="flex items-center px-4 py-4 border-b border-gray-100 dark:border-gray-800">
           <Icons.Search className="w-5 h-5 text-gray-400 mr-3" />
           <input
@@ -146,7 +136,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
           </div>
         </div>
 
-        {/* Results List */}
         <div 
           className="max-h-[60vh] overflow-y-auto p-2 scroll-smooth"
           ref={listRef}
@@ -198,7 +187,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
           )}
         </div>
 
-        {/* Footer */}
         <div className="bg-gray-50 dark:bg-black/50 px-4 py-2 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-[10px] text-gray-400 font-medium">
             <span>Microspace Spotlight</span>
             <div className="flex gap-3">

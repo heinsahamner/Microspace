@@ -11,7 +11,6 @@ interface RichTextProps {
 export const RichTextRenderer: React.FC<RichTextProps> = ({ text, className, highlightTerm }) => {
   if (!text) return null;
 
-  // Helper to apply highlight to text nodes within Markdown components
   const processChildren = (children: React.ReactNode) => {
       return React.Children.map(children, child => {
           if (typeof child === 'string') {

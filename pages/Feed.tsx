@@ -23,7 +23,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
@@ -35,6 +34,10 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
         setSelectedGroup(profile.group_id);
     }
   }, [profile]);
+
+  useEffect(() => {
+      setSelectedSubject('all');
+  }, [selectedGroup]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -65,6 +68,10 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
     }
   }, [profile, type, selectedCategory, selectedSubject, selectedGroup, user]);
 
+  const handleDelete = (id: string) => {
+      setFiles(prev => prev.filter(f => f.id !== id));
+  };
+
   const filteredFiles = useMemo(() => {
       if (!searchTerm) return files;
       const lowerSearch = searchTerm.toLowerCase();
@@ -74,7 +81,13 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
       );
   }, [files, searchTerm]);
 
-  // UI Configuration based on Type
+  const availableSubjects = useMemo(() => {
+      if (!selectedGroup) return [];
+      return subjects
+          .filter(s => s.group_id === selectedGroup)
+          .sort((a, b) => a.name.localeCompare(b.name));
+  }, [subjects, selectedGroup]);
+
   const pageConfig = type === 'official' ? {
       title: "Mural Oficial",
       subtitle: "Comunicados e materiais verificados.",
@@ -92,7 +105,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
   return (
     <div className="min-h-screen p-4 md:max-w-5xl md:mx-auto pb-24">
         
-        {/* Editorial Header */}
         <div className="flex items-end justify-between mb-8 px-2 mt-4 animate-in fade-in slide-in-from-top-4">
             <div className="flex items-center gap-4">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${pageConfig.bg} ${pageConfig.color} shadow-sm`}>
@@ -105,10 +117,8 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
             </div>
         </div>
 
-        {/* Smart Toolbar */}
         <div className="sticky top-20 z-30 space-y-3 mb-6">
             <div className="flex gap-3">
-                {/* Search Field */}
                 <div className="relative flex-1 group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Icons.Search className="h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -122,7 +132,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
                     />
                 </div>
 
-                {/* Filter Toggle Button */}
                 <button 
                     onClick={() => setShowFilters(!showFilters)}
                     className={`px-4 rounded-2xl border transition-all flex items-center gap-2 font-bold text-sm shadow-sm ${
@@ -136,11 +145,9 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
                 </button>
             </div>
 
-            {/* Expandable Filter Area */}
             {showFilters && (
                 <div className="bg-white dark:bg-[#121212] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-lg animate-in slide-in-from-top-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                        {/* Group Filter */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Turma</label>
                             <div className="relative">
@@ -159,7 +166,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
                             </div>
                         </div>
 
-                        {/* Subject Filter */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Matéria</label>
                             <div className="relative">
@@ -169,7 +175,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
                                     className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white appearance-none focus:ring-2 focus:ring-primary outline-none"
                                 >
                                     <option value="all">Todas as Matérias</option>
-                                    {subjects.map(s => (
+                                    {availableSubjects.map(s => (
                                         <option key={s.id} value={s.id}>{s.name}</option>
                                     ))}
                                 </select>
@@ -180,7 +186,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
                 </div>
             )}
 
-            {/* Category Chips - Padding added to container to prevent clipping */}
             <div className="flex space-x-2 overflow-x-auto no-scrollbar pb-2 px-1 -mx-1">
                 {CATEGORIES.map(cat => (
                     <button
@@ -198,7 +203,6 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
             </div>
         </div>
 
-        {/* Content List */}
         <div className="space-y-5">
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -226,6 +230,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({ type }) => {
                         file={file} 
                         colorHex={file.subject?.color_hex || '#9ca3af'}
                         highlightTerm={searchTerm} 
+                        onDelete={handleDelete}
                     />
                 ))
             )}

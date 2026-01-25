@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthLayout } from './AuthLayout';
 import { Icons } from '../../components/Icons';
+import { clearSession } from '../../services/supabase';
 
 export const Login: React.FC = () => {
-    const { signInWithCredentials, signIn } = useAuth();
+    const { signInWithCredentials } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -35,29 +37,20 @@ export const Login: React.FC = () => {
     return (
         <AuthLayout title="Acesse sua conta" subtitle="Bem-vindo de volta! Por favor, insira seus dados.">
             
-            {/* Social Login */}
-            <button 
-                onClick={signIn}
-                className="w-full flex items-center justify-center space-x-3 bg-white dark:bg-[#181818] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all mb-6 group"
-            >
-                <Icons.Google className="w-5 h-5 text-gray-600 dark:text-white group-hover:scale-110 transition-transform" />
-                <span>Entrar com Google</span>
-            </button>
-
-            <div className="relative mb-6">
-                <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-100 dark:border-gray-800"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white dark:bg-black px-2 text-gray-400 font-bold tracking-wider">Ou entre com email</span>
-                </div>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5 mt-4">
                 {error && (
-                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm flex items-center space-x-3 animate-in shake">
-                        <Icons.AlertCircle className="w-5 h-5 flex-shrink-0" />
-                        <span>{error}</span>
+                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm flex flex-col gap-2 animate-in shake">
+                        <div className="flex items-center space-x-3">
+                            <Icons.AlertCircle className="w-5 h-5 flex-shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                        <button 
+                            type="button" 
+                            onClick={clearSession} 
+                            className="text-xs font-bold underline hover:text-red-800 dark:hover:text-red-200 text-left pl-8"
+                        >
+                            Resetar App e Cache (Correção de Erros)
+                        </button>
                     </div>
                 )}
 

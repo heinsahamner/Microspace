@@ -16,7 +16,6 @@ export const Terms: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200">
-            {/* Header */}
             <div className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
                 <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-4">
                     <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 text-gray-500 dark:text-gray-400 transition-colors">
@@ -30,22 +29,22 @@ export const Terms: React.FC = () => {
                 
                 <div className="bg-purple-50 dark:bg-purple-900/10 p-6 rounded-2xl border border-purple-100 dark:border-purple-900/30 mb-8">
                     <p className="text-sm text-purple-800 dark:text-purple-300 font-medium">
-                        Última atualização: 15 de Maio de 2024
+                        Última atualização: 25 de janeiro de 2026
                     </p>
                     <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
-                        Ao utilizar o Microspace, você concorda com as diretrizes abaixo.
+                        Ao utilizar o Microspace, você concorda com as diretrizes abaixo:
                     </p>
                 </div>
 
                 <Section title="1. O Propósito">
                     <p>
-                        O Microspace é uma plataforma colaborativa destinada exclusivamente ao compartilhamento de materiais de estudo, dúvidas e conteúdos educacionais entre alunos e professores.
+                        O Microspace é uma plataforma colaborativa destinada exclusivamente ao compartilhamento de materiais de estudo, dúvidas e conteúdos educacionais entre alunos.
                     </p>
                 </Section>
 
                 <Section title="2. Conduta e Respeito">
                     <p>
-                        Não toleramos:
+                        Não é tolerado:
                     </p>
                     <ul className="list-disc pl-5 space-y-1">
                         <li>Discurso de ódio, bullying ou assédio de qualquer natureza.</li>
@@ -59,25 +58,25 @@ export const Terms: React.FC = () => {
 
                 <Section title="3. Direitos Autorais">
                     <p>
-                        Ao postar materiais, você garante que possui os direitos de distribuição ou que o material é de domínio público/Creative Commons.
+                        Ao postar materiais, você garante que possui os direitos de distribuição ou que o material é de domínio público (Creative Commons).
                     </p>
                     <p>
-                        A plataforma não reivindica propriedade sobre o conteúdo criado pelos usuários, mas reserva-se o direito de remover materiais que violem direitos de terceiros mediante denúncia.
+                        A plataforma não reivindica propriedade sobre o conteúdo criado pelos usuários, mas reserva-se o direito de remover materiais que violem direitos de terceiros mediante denúncia, ou por conteúdo impróprio, ofensivo, etc.
                     </p>
                 </Section>
 
                 <Section title="4. Privacidade de Dados">
                     <p>
-                        Coletamos apenas os dados essenciais para o funcionamento da plataforma (nome, email, turma). 
+                        São coletados apenas os dados essenciais para o funcionamento da plataforma (nome, email, turma). 
                     </p>
                     <p>
-                        Em "Configurações &gt; Exportar Dados", você pode baixar uma cópia de todas as informações que temos sobre você. Você também pode solicitar a exclusão total da sua conta a qualquer momento.
+                        Em "Configurações &gt; Exportar Dados", você pode baixar uma cópia de todas as informações que o banco de dados possui sobre você. Você também pode solicitar a exclusão total da sua conta a qualquer momento.
                     </p>
                 </Section>
 
                 <Section title="5. Responsabilidade">
                     <p>
-                        O Microspace é fornecido "como está". Não garantimos a precisão dos materiais postados pelos usuários. Utilize seu julgamento crítico ao estudar.
+                        O Microspace é fornecido "como está". Não é garantida a precisão dos materiais postados pelos usuários. Utilize seu julgamento crítico ao estudar.
                     </p>
                 </Section>
 
@@ -87,7 +86,7 @@ export const Terms: React.FC = () => {
                         onClick={() => navigate('/settings')}
                         className="text-[#7900c5] font-bold hover:underline"
                     >
-                        Entre em contato pelo Suporte
+                        Entre em contato pelo Suporte (não tem suporte ainda)
                     </button>
                 </div>
 

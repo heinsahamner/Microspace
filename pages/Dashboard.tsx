@@ -16,26 +16,22 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState({ likesReceived: 0, commentsReceived: 0, uploadsCount: 0 });
   const [loading, setLoading] = useState(true);
 
-  // Greeting Logic
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+  const greeting = hour < 12 ? 'Bom dia' : hour < 19 ? 'Boa tarde' : 'Boa noite';
 
   useEffect(() => {
       const loadData = async () => {
           if (user && profile?.group_id) {
               setLoading(true);
               
-              // 1. Posts from Following
               const fPosts = await Service.getFollowedPosts(user.id);
               setFollowingPosts(fPosts);
 
-              // 2. Recent in Group (for "Destaques")
               const tPosts = await Service.getFiles(null, 'all', 'all', profile.group_id, user.id);
               setTrendingPosts(tPosts.slice(0, 5));
 
-              // 3. User Stats
               const userStats = await Service.getUserStats(user.id);
-              // @ts-ignore - uploadsCount added in service
+              //havia um ts ignore aqui, acho
               setStats(userStats);
               
               setLoading(false);
@@ -43,6 +39,11 @@ export const Dashboard: React.FC = () => {
       };
       loadData();
   }, [user, profile]);
+
+  const handleDelete = (id: string) => {
+      setTrendingPosts(prev => prev.filter(p => p.id !== id));
+      setFollowingPosts(prev => prev.filter(p => p.id !== id));
+  };
 
   const QuickAction = ({ to, icon: Icon, label, color }: any) => (
       <Link to={to} className="flex flex-col items-center space-y-2 group">
@@ -55,11 +56,9 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black pb-24">
-      {/* Header & Stats Hero */}
       <div className="bg-white dark:bg-[#121212] border-b border-gray-100 dark:border-gray-800 pb-8 pt-6 px-6 rounded-b-[2.5rem] shadow-sm relative overflow-hidden">
           <div className="md:max-w-4xl md:mx-auto relative z-10">
               
-              {/* Clean Header: Greeting Only */}
               <div className="mb-8">
                   <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 uppercase tracking-wide opacity-80">
                       {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -70,7 +69,6 @@ export const Dashboard: React.FC = () => {
                   </h1>
               </div>
 
-              {/* Stats Grid: Contribution & Recognition */}
               <div className="grid grid-cols-2 gap-4">
                   <div className="bg-indigo-50 dark:bg-indigo-900/10 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition-all">
                       <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
@@ -105,7 +103,6 @@ export const Dashboard: React.FC = () => {
 
       <div className="md:max-w-4xl md:mx-auto px-6 mt-8 space-y-10">
           
-          {/* Quick Actions */}
           <div>
               <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 mb-4 uppercase tracking-wider">Acesso Rápido</h3>
               <div className="flex justify-between px-2">
@@ -116,7 +113,6 @@ export const Dashboard: React.FC = () => {
               </div>
           </div>
 
-          {/* Featured / Following */}
           <div>
               <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -162,7 +158,6 @@ export const Dashboard: React.FC = () => {
               )}
           </div>
 
-          {/* Main Feed: Trending/Recent */}
           <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <Icons.TrendingUp className="w-5 h-5 text-red-500" />
@@ -174,7 +169,12 @@ export const Dashboard: React.FC = () => {
                       [1,2,3].map(i => <div key={i} className="h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />)
                   ) : trendingPosts.length > 0 ? (
                       trendingPosts.map(post => (
-                          <FileCard key={post.id} file={post} colorHex={post.subject?.color_hex || '#999'} />
+                          <FileCard 
+                            key={post.id} 
+                            file={post} 
+                            colorHex={post.subject?.color_hex || '#999'} 
+                            onDelete={handleDelete}
+                          />
                       ))
                   ) : (
                       <div className="text-center py-10 text-gray-400">

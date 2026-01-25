@@ -11,7 +11,6 @@ export const Backpack: React.FC = () => {
   const [savedFiles, setSavedFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Filters & UI State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'group'>('grid');
@@ -19,7 +18,6 @@ export const Backpack: React.FC = () => {
   useEffect(() => {
       const fetchSaved = async () => {
           if (!user) return;
-          // @ts-ignore
           const data = await Service.getSavedFiles(user.id);
           setSavedFiles(data);
           setLoading(false);
@@ -27,7 +25,6 @@ export const Backpack: React.FC = () => {
       fetchSaved();
   }, [user]);
 
-  // Removes item from list immediately when unsaved
   const handleUnsave = (id: string, status: boolean) => {
       if (!status) {
           setSavedFiles(prev => prev.filter(f => f.id !== id));
@@ -59,7 +56,6 @@ export const Backpack: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black p-4 md:max-w-5xl md:mx-auto pb-24 transition-colors duration-200">
        
-       {/* Hero / Header */}
        <div className="mb-8 pt-4 animate-in slide-in-from-top-4 duration-500">
             <div className="flex items-center space-x-4 mb-2">
                 <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center shadow-sm">
@@ -74,11 +70,9 @@ export const Backpack: React.FC = () => {
             </div>
        </div>
 
-       {/* Controls Toolbar */}
        <div className="bg-white dark:bg-[#121212] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mb-8 sticky top-20 z-30 transition-all">
            <div className="flex flex-col md:flex-row gap-4">
                
-               {/* Search Input */}
                <div className="relative flex-1">
                    <Icons.Search className="absolute left-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
                    <input 
@@ -91,7 +85,6 @@ export const Backpack: React.FC = () => {
                </div>
 
                <div className="flex items-center gap-3">
-                   {/* Category Filters */}
                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-1 md:flex-none">
                        {(['all', 'summary', 'activity', 'assessment'] as const).map(cat => (
                            <button
@@ -108,10 +101,8 @@ export const Backpack: React.FC = () => {
                        ))}
                    </div>
 
-                   {/* Divider */}
                    <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 hidden md:block"></div>
 
-                   {/* View Mode Toggle */}
                    <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 shrink-0">
                        <button 
                             onClick={() => setViewMode('grid')}
@@ -132,7 +123,6 @@ export const Backpack: React.FC = () => {
            </div>
        </div>
 
-       {/* Content Area */}
        <div className="animate-in fade-in duration-500">
            {loading ? (
                <div className="flex flex-col items-center justify-center py-20">
