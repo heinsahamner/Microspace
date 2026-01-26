@@ -49,7 +49,7 @@ export const Login: React.FC = () => {
                             onClick={clearSession} 
                             className="text-xs font-bold underline hover:text-red-800 dark:hover:text-red-200 text-left pl-8"
                         >
-                            Resetar App e Cache (Correção de Erros)
+                            Resetar site e Cache (Correção de Erros)
                         </button>
                     </div>
                 )}
@@ -66,7 +66,7 @@ export const Login: React.FC = () => {
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7900c5] focus:bg-white dark:focus:bg-black transition-all"
-                            placeholder="aluno@escola.com"
+                            placeholder="valentina@eccard.miller"
                         />
                     </div>
                 </div>

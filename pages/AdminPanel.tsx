@@ -35,13 +35,15 @@ const Badge: React.FC<{ children: React.ReactNode; color: 'red' | 'blue' | 'gree
   );
 };
 
-const ActionButton = ({ onClick, icon: Icon, variant = 'default', title }: any) => {
+const ActionButton = ({ onClick, icon: Icon, variant = 'default', title, className }: any) => {
     const styles = variant === 'danger' 
         ? "text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" 
+        : variant === 'gold'
+        ? "text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
         : "text-gray-400 hover:text-[#7900c5] hover:bg-purple-50 dark:hover:bg-purple-900/20";
     
     return (
-        <button onClick={onClick} className={`p-2 rounded-lg transition-all duration-200 ${styles}`} title={title}>
+        <button onClick={onClick} className={`p-2 rounded-lg transition-all duration-200 ${styles} ${className}`} title={title}>
             <Icon className="w-4 h-4" />
         </button>
     );
@@ -60,12 +62,14 @@ export const AdminPanel: React.FC = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'members'>('create');
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'members' | 'titles'>('create');
   const [editingItem, setEditingItem] = useState<any>(null);
   
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
   const [originalSubjectName, setOriginalSubjectName] = useState('');
+  
+  const [userReps, setUserReps] = useState<string[]>([]);
 
   useEffect(() => {
     if (profile?.role !== 'admin') {
@@ -86,7 +90,7 @@ export const AdminPanel: React.FC = () => {
           promises.push(Service.getAdminStats());
           statsIndex = promises.length - 1;
       }
-      if (currentView === 'subjects') {
+      if (currentView === 'subjects' || currentView === 'users' || modalMode === 'titles') {
           promises.push(Service.getAllSubjects());
           subjectsIndex = promises.length - 1;
       }
@@ -101,7 +105,7 @@ export const AdminPanel: React.FC = () => {
       setUsers(results[1] as Profile[]);
       
       if (currentView === 'dashboard' && statsIndex !== -1) setStats(results[statsIndex] as any);
-      if (currentView === 'subjects' && subjectsIndex !== -1) setSubjects(results[subjectsIndex] as Subject[]);
+      if ((currentView === 'subjects' || currentView === 'users') && subjectsIndex !== -1) setSubjects(results[subjectsIndex] as Subject[]);
       if (currentView === 'feedbacks' && feedbacksIndex !== -1) setFeedbacks(results[feedbacksIndex] as Feedback[]);
   };
 
@@ -200,6 +204,33 @@ export const AdminPanel: React.FC = () => {
         (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
       );
 
+      const openTitles = async (u: Profile) => {
+          setEditingItem(u);
+          
+          if (!u.group_id) {
+              alert("Usuário precisa estar em uma turma para ter títulos.");
+              return;
+          }
+
+          const groupSubjects = subjects.filter(s => s.group_id === u.group_id);
+          const reps: string[] = [];
+          for (const s of groupSubjects) {
+              // @ts-ignore
+              const subjectReps = await Service.getSubjectRepresentatives(s.id);
+              if (subjectReps.includes(u.id)) reps.push(s.id);
+          }
+          setUserReps(reps);
+          setModalMode('titles');
+          setIsModalOpen(true);
+      };
+
+      const handleToggleRep = async (subjectId: string) => {
+          const isRep = userReps.includes(subjectId);
+          // @ts-ignore
+          await Service.manageRepresentative(editingItem.id, subjectId, !isRep);
+          setUserReps(prev => isRep ? prev.filter(id => id !== subjectId) : [...prev, subjectId]);
+      };
+
       return (
       <div className="h-full flex flex-col space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4">
@@ -275,7 +306,13 @@ export const AdminPanel: React.FC = () => {
                                           <Icons.Dynamic name="chevron-down" className="w-3 h-3 absolute right-2 top-1.5 opacity-50 pointer-events-none" />
                                        </div>
                                   </td>
-                                  <td className="px-6 py-4 text-right">
+                                  <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                      <ActionButton 
+                                        icon={Icons.Trophy} 
+                                        variant="gold"
+                                        onClick={() => openTitles(u)} 
+                                        title="Gerenciar Títulos"
+                                      />
                                       <ActionButton 
                                         icon={Icons.Trash} 
                                         variant="danger" 
@@ -289,6 +326,47 @@ export const AdminPanel: React.FC = () => {
                   </table>
               </div>
           </Card>
+
+          {isModalOpen && modalMode === 'titles' && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+                  <Card className="w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+                      <div className="flex items-center gap-3 mb-6 border-b border-gray-100 dark:border-gray-800 pb-4">
+                          <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 flex items-center justify-center">
+                              <Icons.Trophy className="w-5 h-5" />
+                          </div>
+                          <div>
+                              <h3 className="font-bold text-gray-900 dark:text-white">Gerenciar Representantes</h3>
+                              <p className="text-xs text-gray-500">Usuário: {editingItem.username}</p>
+                          </div>
+                      </div>
+                      
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar mb-6">
+                          <p className="text-xs font-bold text-gray-400 uppercase">Matérias da Turma</p>
+                          {subjects.filter(s => s.group_id === editingItem.group_id).length === 0 && <p className="text-sm text-gray-500">Nenhuma matéria nesta turma.</p>}
+                          {subjects.filter(s => s.group_id === editingItem.group_id).map(s => (
+                              <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                                  <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: s.color_hex }}>
+                                          <Icons.Dynamic name={s.icon_name} className="w-4 h-4" />
+                                      </div>
+                                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{s.name}</span>
+                                  </div>
+                                  <button 
+                                    onClick={() => handleToggleRep(s.id)}
+                                    className={`w-10 h-6 rounded-full p-1 transition-colors ${userReps.includes(s.id) ? 'bg-yellow-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                                  >
+                                      <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${userReps.includes(s.id) ? 'translate-x-4' : ''}`} />
+                                  </button>
+                              </div>
+                          ))}
+                      </div>
+
+                      <div className="flex justify-end">
+                          <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-bold text-gray-500 hover:text-gray-800 dark:hover:text-gray-300">Fechar</button>
+                      </div>
+                  </Card>
+              </div>
+          )}
       </div>
   )};
 
@@ -426,38 +504,37 @@ export const AdminPanel: React.FC = () => {
   const renderSubjects = () => {
       const handleSave = async (e: React.FormEvent) => {
           e.preventDefault();
-          
           if (!editingItem.name.trim()) return alert("O nome da matéria é obrigatório.");
-          if (selectedGroupIds.length === 0) return alert("Selecione pelo menos uma turma.");
-
-          const confirmMessage = "Ao desmarcar uma turma, a matéria e todos os arquivos associados a ela naquela turma serão EXCLUÍDOS PERMANENTEMENTE. Continuar?";
           
-          if(modalMode === 'edit' && !window.confirm("Isso atualizará a matéria em TODAS as turmas selecionadas. " + confirmMessage)) return;
+          if(modalMode === 'edit') {
+              await Service.updateSubject(editingItem.id, { 
+                  name: editingItem.name, 
+                  color_hex: editingItem.color_hex, 
+                  icon_name: editingItem.icon_name,
+                  monitor_id: editingItem.monitor_id || null
+              });
+          } else {
+              if (selectedGroupIds.length === 0) return alert("Selecione pelo menos uma turma.");
+              
+              const confirmMessage = "Ao desmarcar uma turma, a matéria e todos os arquivos associados a ela naquela turma serão EXCLUÍDOS PERMANENTEMENTE. Continuar?";
+              
+              if(!window.confirm("Isso criará a matéria em TODAS as turmas selecionadas. " + confirmMessage)) return;
 
-          await Service.manageSubjectDistribution(
-              editingItem.name, 
-              originalSubjectName, 
-              editingItem.color_hex, 
-              editingItem.icon_name, 
-              selectedGroupIds
-          );
-          
+              await Service.manageSubjectDistribution(
+                  editingItem.name, 
+                  originalSubjectName, 
+                  editingItem.color_hex, 
+                  editingItem.icon_name, 
+                  selectedGroupIds
+              );
+          }
           setIsModalOpen(false); 
           loadData();
       };
 
-      const handleMultiSelect = (gid: string) => {
-          setSelectedGroupIds(prev => prev.includes(gid) ? prev.filter(i => i !== gid) : [...prev, gid]);
-      };
-
       const openEditSubject = (subject: Subject) => {
-          const relatedGroupIds = subjects
-            .filter(s => s.name.toLowerCase() === subject.name.toLowerCase())
-            .map(s => s.group_id);
-          
           setEditingItem({ ...subject });
-          setOriginalSubjectName(subject.name);
-          setSelectedGroupIds(relatedGroupIds);
+          setOriginalSubjectName(subject.name); 
           setModalMode('edit');
           setIsModalOpen(true);
       };
@@ -488,21 +565,33 @@ export const AdminPanel: React.FC = () => {
                               <h3 className="font-bold text-lg text-gray-900 dark:text-white">{g.name}</h3>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                              {subList.map(s => (
-                                  <div key={s.id} className="group flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/30 hover:shadow-md transition-all relative overflow-hidden">
+                              {subList.map(s => {
+                                  const monitorName = users.find(u => u.id === s.monitor_id)?.username;
+                                  return (
+                                  <div key={s.id} className="group flex flex-col p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/30 hover:shadow-md transition-all relative overflow-hidden">
                                       <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{backgroundColor: s.color_hex}}></div>
-                                      <div className="flex items-center space-x-3">
-                                          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm" style={{backgroundColor: s.color_hex}}>
-                                              <Icons.Dynamic name={s.icon_name} className="w-5 h-5" />
+                                      
+                                      <div className="flex justify-between items-start mb-2">
+                                          <div className="flex items-center space-x-3">
+                                              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm" style={{backgroundColor: s.color_hex}}>
+                                                  <Icons.Dynamic name={s.icon_name} className="w-5 h-5" />
+                                              </div>
+                                              <span className="font-bold text-sm text-gray-800 dark:text-gray-200 truncate max-w-[120px]">{s.name}</span>
                                           </div>
-                                          <span className="font-bold text-sm text-gray-800 dark:text-gray-200 truncate max-w-[120px]">{s.name}</span>
+                                          <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                              <button onClick={() => openEditSubject(s)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 hover:text-[#7900c5]"><Icons.Edit className="w-3.5 h-3.5" /></button>
+                                              <button onClick={() => handleDelete('subject', s.id)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg text-red-500"><Icons.Trash className="w-3.5 h-3.5" /></button>
+                                          </div>
                                       </div>
-                                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <button onClick={() => openEditSubject(s)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 hover:text-[#7900c5]"><Icons.Edit className="w-3.5 h-3.5" /></button>
-                                          <button onClick={() => handleDelete('subject', s.id)} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg text-red-500"><Icons.Trash className="w-3.5 h-3.5" /></button>
-                                      </div>
+
+                                      {monitorName && (
+                                          <div className="flex items-center gap-1.5 mt-2 ml-1 text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg w-fit">
+                                              <Icons.Shield className="w-3 h-3 text-blue-500" />
+                                              <span className="truncate max-w-[100px]">Monitor: {monitorName}</span>
+                                          </div>
+                                      )}
                                   </div>
-                              ))}
+                              )})}
                           </div>
                       </Card>
                   );
@@ -519,24 +608,53 @@ export const AdminPanel: React.FC = () => {
                               <input value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-[#7900c5] outline-none text-gray-900 dark:text-white font-bold" placeholder="Ex: Biologia" />
                           </div>
                           
-                          <div>
-                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Aplicar nas Turmas</label>
-                              <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto custom-scrollbar">
-                                  {groups.map(g => (
-                                      <label key={g.id} className="flex items-center space-x-3 p-2.5 hover:bg-white dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors group">
-                                          <input 
-                                            type="checkbox" 
-                                            checked={selectedGroupIds.includes(g.id)} 
-                                            onChange={() => handleMultiSelect(g.id)} 
-                                            className="w-4 h-4 rounded text-[#7900c5] focus:ring-[#7900c5] border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700" 
-                                          />
-                                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1">{g.name}</span>
-                                          {selectedGroupIds.includes(g.id) && <span className="text-[10px] font-bold text-[#7900c5] bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">Ativo</span>}
-                                      </label>
-                                  ))}
+                          {modalMode === 'edit' && (
+                              <div>
+                                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase flex items-center gap-2">
+                                      <Icons.Shield className="w-3 h-3" /> Monitor da Matéria
+                                  </label>
+                                  <div className="relative">
+                                      <select 
+                                        value={editingItem.monitor_id || ''}
+                                        onChange={e => setEditingItem({...editingItem, monitor_id: e.target.value})}
+                                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-[#7900c5] outline-none text-gray-900 dark:text-white appearance-none cursor-pointer"
+                                      >
+                                          <option value="">-- Nenhum Monitor --</option>
+                                          {users.filter(u => u.group_id === editingItem.group_id).map(u => (
+                                              <option key={u.id} value={u.id}>{u.username}</option>
+                                          ))}
+                                      </select>
+                                      <Icons.Dynamic name="chevron-down" className="w-4 h-4 absolute right-3 top-3.5 text-gray-400 pointer-events-none" />
+                                  </div>
+                                  <p className="text-[10px] text-gray-400 mt-1">O aluno selecionado receberá o título de Monitor nesta matéria.</p>
                               </div>
-                              <p className="text-[10px] text-gray-400 mt-2 italic">A matéria será criada ou atualizada nas turmas selecionadas.</p>
-                          </div>
+                          )}
+
+                          {modalMode === 'create' && (
+                              <div>
+                                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Aplicar nas Turmas</label>
+                                  <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto custom-scrollbar">
+                                      {groups.map(g => (
+                                          <label key={g.id} className="flex items-center space-x-3 p-2.5 hover:bg-white dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors group">
+                                              <input 
+                                                type="checkbox" 
+                                                checked={selectedGroupIds.includes(g.id)} 
+                                                onChange={() => {
+                                                    const newIds = selectedGroupIds.includes(g.id) 
+                                                        ? selectedGroupIds.filter(i => i !== g.id) 
+                                                        : [...selectedGroupIds, g.id];
+                                                    setSelectedGroupIds(newIds);
+                                                }} 
+                                                className="w-4 h-4 rounded text-[#7900c5] focus:ring-[#7900c5] border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700" 
+                                              />
+                                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1">{g.name}</span>
+                                              {selectedGroupIds.includes(g.id) && <span className="text-[10px] font-bold text-[#7900c5] bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">Ativo</span>}
+                                          </label>
+                                      ))}
+                                  </div>
+                                  <p className="text-[10px] text-gray-400 mt-2 italic">A matéria será criada nas turmas selecionadas.</p>
+                              </div>
+                          )}
 
                           <div>
                               <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Cor Tema</label>

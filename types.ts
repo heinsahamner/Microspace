@@ -26,6 +26,13 @@ export interface Profile {
   group?: Group; 
   is_following?: boolean;
   created_at?: string;
+  titles?: UserTitle[];
+}
+
+export interface UserTitle {
+    type: 'monitor' | 'representative';
+    subject_id: string;
+    subject_name: string;
 }
 
 export interface Subject {
@@ -35,6 +42,7 @@ export interface Subject {
   icon_name: string; 
   group_id: string;
   file_count?: number;
+  monitor_id?: string | null;
 }
 
 export interface Comment {
@@ -112,6 +120,7 @@ export interface FileData {
   isLiked?: boolean; 
   isSaved?: boolean;
   poll?: Poll | null;
+  author_role?: 'monitor' | 'representative' | null;
 }
 
 export interface Interaction {

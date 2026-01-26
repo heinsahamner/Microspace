@@ -53,7 +53,7 @@ export const AuthLayout: React.FC<{ children: React.ReactNode; title?: string; s
                     {children}
 
                     <div className="mt-12 text-center text-xs text-gray-400">
-                        &copy; 2026 Microspace App. Todos os direitos reservados.
+                        &copy; 2026 Lucas Willian
                     </div>
                 </div>
             </div>

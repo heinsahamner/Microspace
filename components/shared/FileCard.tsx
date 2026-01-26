@@ -123,6 +123,27 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
   const canEdit = user && file.uploader_id === user.id;
   const canDelete = user && (file.uploader_id === user.id || profile?.role === 'admin');
 
+  let borderClass = "border border-gray-100 dark:border-gray-800";
+  let badge = null;
+
+  if (file.author_role === 'monitor') {
+      borderClass = "border-2 border-cyan-400 dark:border-cyan-600 shadow-[0_0_15px_rgba(34,211,238,0.15)]";
+      badge = (
+          <div className="flex items-center gap-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 rounded-full text-[10px] font-bold border border-cyan-200 dark:border-cyan-800">
+              <Icons.Shield className="w-3 h-3" />
+              <span>Monitor</span>
+          </div>
+      );
+  } else if (file.author_role === 'representative') {
+      borderClass = "border-2 border-yellow-400 dark:border-yellow-600 shadow-[0_0_15px_rgba(250,204,21,0.15)]";
+      badge = (
+          <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-2 py-0.5 rounded-full text-[10px] font-bold border border-yellow-200 dark:border-yellow-800">
+              <Icons.Trophy className="w-3 h-3" />
+              <span>Rep</span>
+          </div>
+      );
+    }
+
   const handleAddToDiary = () => {
     const payload = {
         title: file.title,
@@ -188,7 +209,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
 
   return (
     <>
-    <div className="bg-white dark:bg-[#121212] rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md dark:hover:border-gray-700 transition-all relative group">
+    <div className={`bg-white dark:bg-[#121212] rounded-xl p-4 shadow-sm hover:shadow-md transition-all relative group ${borderClass}`}>
       
       {(canEdit || canDelete) && (
           <div className="absolute top-2 right-2 z-10">
@@ -227,14 +248,16 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
 
       <div className="flex justify-between items-start mb-3 pr-8">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 relative">
             <Icons.FileText className="w-6 h-6" />
+            {file.category === 'assessment' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-black"></div>}
           </div>
           <div className="cursor-pointer" onClick={goToProfile}>
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200 line-clamp-1 hover:text-[#7900c5] dark:hover:text-purple-400 transition-colors">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 line-clamp-1 hover:text-[#7900c5] dark:hover:text-purple-400 transition-colors flex items-center gap-2">
                 <Highlight text={file.title} term={highlightTerm} />
+                {badge}
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 hover:underline">
+            <p className="text-xs text-gray-500 dark:text-gray-400 hover:underline flex items-center gap-1">
               {file.uploader?.username} • {new Date(file.created_at).toLocaleDateString()}
             </p>
           </div>

@@ -15,6 +15,7 @@ export interface MicrospaceDB extends DBSchema {
   polls: { key: string; value: Poll };
   flashcard_decks: { key: string; value: FlashcardDeck };
   flashcards: { key: string; value: Flashcard & { deck_id: string } };
+  subject_representatives: { key: string; value: { id: string; user_id: string; subject_id: string } };
 }
 
 let dbPromise: Promise<IDBPDatabase<MicrospaceDB>>;
@@ -22,7 +23,7 @@ let dbPromise: Promise<IDBPDatabase<MicrospaceDB>>;
 export const initDB = async (shouldSeed: boolean = false) => {
   if (dbPromise) return dbPromise;
 
-  dbPromise = openDB<MicrospaceDB>('microspace-db', 6, { 
+  dbPromise = openDB<MicrospaceDB>('microspace-db', 7, { 
     upgrade(db, oldVersion, newVersion, transaction) {
       if (!db.objectStoreNames.contains('groups')) db.createObjectStore('groups', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('profiles')) db.createObjectStore('profiles', { keyPath: 'id' });
@@ -37,6 +38,7 @@ export const initDB = async (shouldSeed: boolean = false) => {
       if (!db.objectStoreNames.contains('polls')) db.createObjectStore('polls', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('flashcard_decks')) db.createObjectStore('flashcard_decks', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('flashcards')) db.createObjectStore('flashcards', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('subject_representatives')) db.createObjectStore('subject_representatives', { keyPath: 'id' });
     },
   });
 
@@ -47,7 +49,7 @@ export const initDB = async (shouldSeed: boolean = false) => {
       if (groupsCount === 0) {
           console.log("🌱 Seeding Demo Data...");
           const demoGroupId = 'demo-group';
-          await db.put('groups', { id: demoGroupId, name: 'Turma Demo 2026', slug: 'demo-2026', academic_year: 2026, icon_name: 'users' });
+          await db.put('groups', { id: demoGroupId, name: 'Turma Demo 2024', slug: 'demo-2024', academic_year: 2024, icon_name: 'users' });
           await db.put('subjects', { id: 'sub-math', name: 'Matemática', color_hex: '#3b82f6', icon_name: 'calculator', group_id: demoGroupId });
           await db.put('subjects', { id: 'sub-hist', name: 'História', color_hex: '#f59e0b', icon_name: 'book', group_id: demoGroupId });
           await db.put('profiles', { id: 'user-demo', username: 'Admin Demo', email: 'admin@demo.com', role: 'admin', group_id: demoGroupId, followers_count: 120, following_count: 15, bio: 'Conta de demonstração.', avatar_url: null, background_url: null });
@@ -58,7 +60,7 @@ export const initDB = async (shouldSeed: boolean = false) => {
               title: 'Qual o melhor método?',
               description: 'Votem abaixo no método de estudo preferido da turma.',
               file_url: '#', file_type: 'text', size_bytes: 0,
-              uploader_id: 'user-demo', subject_id: 'sub-math', target_group_id: demoGroupId, category: 'activity', source_type: 'community', year_reference: 2026, views_count: 10, likes_count: 2, comments_count: 0, created_at: new Date().toISOString()
+              uploader_id: 'user-demo', subject_id: 'sub-math', target_group_id: demoGroupId, category: 'activity', source_type: 'community', year_reference: 2024, views_count: 10, likes_count: 2, comments_count: 0, created_at: new Date().toISOString()
           });
           await db.put('polls', {
               id: 'poll-1',
@@ -105,6 +107,7 @@ export const MockService = {
       if (sourceType !== 'all') files = files.filter(f => f.source_type === sourceType);
 
       const polls = await db.getAll('polls');
+      const allReps = await db.getAll('subject_representatives');
 
       const enriched = await Promise.all(files.map(async f => {
           const uploader = await db.get('profiles', f.uploader_id);
@@ -115,10 +118,17 @@ export const MockService = {
           const allComments = await db.getAll('comments');
           const commentsCount = allComments.filter(c => c.file_id === f.id && !c.is_deleted).length;
           const savedFile = await db.get('backpack_saves', f.id);
-          
           const poll = polls.find(p => p.file_id === f.id);
 
-          return { ...f, uploader, subject, likes_count: fileLikes.length, comments_count: commentsCount, isLiked, isSaved: !!savedFile, poll };
+          let author_role: 'monitor' | 'representative' | null = null;
+          if (subject && subject.monitor_id === f.uploader_id) {
+              author_role = 'monitor';
+          } else {
+              const isRep = allReps.some(r => r.user_id === f.uploader_id && r.subject_id === f.subject_id);
+              if (isRep) author_role = 'representative';
+          }
+
+          return { ...f, uploader, subject, likes_count: fileLikes.length, comments_count: commentsCount, isLiked, isSaved: !!savedFile, poll, author_role };
       }));
       return enriched.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
@@ -176,56 +186,52 @@ export const MockService = {
       }
   },
 
-  getFlashcardDecks: async (subjectId: string) => {
+  updateSubject: async (id: string, updates: any) => { 
+      const db = await initDB(true); 
+      const s = await db.get('subjects', id); 
+      if(s) await db.put('subjects', {...s, ...updates}); 
+  },
+
+  getSubjectRepresentatives: async (subjectId: string) => {
       const db = await initDB(true);
-      const decks = await db.getAll('flashcard_decks');
-      const cards = await db.getAll('flashcards');
-      const profiles = await db.getAll('profiles');
+      const reps = await db.getAll('subject_representatives');
+      return reps.filter(r => r.subject_id === subjectId).map(r => r.user_id);
+  },
+
+  manageRepresentative: async (userId: string, subjectId: string, isAdding: boolean) => {
+      const db = await initDB(true);
+      const allReps = await db.getAll('subject_representatives');
+      const existing = allReps.find(r => r.user_id === userId && r.subject_id === subjectId);
       
-      return decks.filter(d => d.subject_id === subjectId).map(d => ({
-          ...d,
-          cards_count: cards.filter(c => c.deck_id === d.id).length,
-          creator_name: profiles.find(p => p.id === d.creator_id)?.username
-      }));
-  },
-
-  getDeckCards: async (deckId: string) => {
-      const db = await initDB(true);
-      const cards = await db.getAll('flashcards');
-      return cards.filter(c => c.deck_id === deckId);
-  },
-
-  createFlashcardDeck: async (subjectId: string, title: string, creatorId: string, cards: {front: string, back: string}[]) => {
-      const db = await initDB(true);
-      const deckId = Math.random().toString(36);
-      await db.put('flashcard_decks', { id: deckId, subject_id: subjectId, title, creator_id: creatorId, cards_count: cards.length });
-      for (const c of cards) {
-          await db.put('flashcards', { id: Math.random().toString(36), deck_id: deckId, front: c.front, back: c.back });
+      if (isAdding && !existing) {
+          await db.put('subject_representatives', { id: Math.random().toString(36), user_id: userId, subject_id: subjectId });
+      } else if (!isAdding && existing) {
+          await db.delete('subject_representatives', existing.id);
       }
   },
 
-  updateFlashcardDeck: async (deckId: string, title: string, cards: {id?: string, front: string, back: string}[]) => {
+  getUserProfile: async (userId: string, currentUserId: string) => {
       const db = await initDB(true);
-      const deck = await db.get('flashcard_decks', deckId);
-      if (deck) {
-          await db.put('flashcard_decks', { ...deck, title });
-          
-          const allCards = await db.getAll('flashcards');
-          const toDelete = allCards.filter(c => c.deck_id === deckId);
-          for(const c of toDelete) await db.delete('flashcards', c.id);
-          
-          for (const c of cards) {
-              await db.put('flashcards', { id: Math.random().toString(36), deck_id: deckId, front: c.front, back: c.back });
-          }
-      }
-  },
+      const profile = await db.get('profiles', userId);
+      if (!profile) return null;
 
-  deleteFlashcardDeck: async (deckId: string) => {
-      const db = await initDB(true);
-      await db.delete('flashcard_decks', deckId);
-      const allCards = await db.getAll('flashcards');
-      const toDelete = allCards.filter(c => c.deck_id === deckId);
-      for(const c of toDelete) await db.delete('flashcards', c.id);
+      const titles = [];
+      const subjects = await db.getAll('subjects');
+      
+      const monitorSubjects = subjects.filter(s => s.monitor_id === userId);
+      monitorSubjects.forEach(s => titles.push({ type: 'monitor', subject_id: s.id, subject_name: s.name }));
+
+      const allReps = await db.getAll('subject_representatives');
+      const repEntries = allReps.filter(r => r.user_id === userId);
+      repEntries.forEach(r => {
+          const sub = subjects.find(s => s.id === r.subject_id);
+          if (sub) titles.push({ type: 'representative', subject_id: sub.id, subject_name: sub.name });
+      });
+
+      const posts = await MockService.getFiles(null, 'all', 'all', null, userId); 
+      
+      const enrichedProfile = { ...profile, titles, is_following: false }; 
+      return { profile: enrichedProfile, posts: posts.filter((p: any) => p.uploader_id === userId) };
   },
 
   updateFile: async (fileId: string, updates: Partial<FileData>) => { const db = await initDB(true); const f = await db.get('files', fileId); if(f) await db.put('files', {...f, ...updates}); },
@@ -235,34 +241,13 @@ export const MockService = {
   addComment: async (fileId: string, userId: string, content: string, parentId?: string) => { const db = await initDB(true); const c = { id: Math.random().toString(), file_id: fileId, user_id: userId, content, parent_id: parentId, created_at: new Date().toISOString(), likes_count: 0, is_deleted: false }; await db.put('comments', c); return c; },
   deleteComment: async (id: string) => { const db = await initDB(true); await db.delete('comments', id); },
   toggleCommentLike: async () => true,
-  getUserProfile: async (userId: string, currentUserId: string) => { const db = await initDB(true); const p = await db.get('profiles', userId); return { profile: p, posts: [] } as any; },
   updateProfile: async (userId: string, updates: any) => { const db = await initDB(true); const p = await db.get('profiles', userId); if(p) await db.put('profiles', {...p, ...updates}); },
   toggleFollow: async () => true,
   getFollowedPosts: async () => [],
   getUserStats: async () => ({ likesReceived: 0, commentsReceived: 0, uploadsCount: 0 }),
   uploadProfileImage: async () => "https://via.placeholder.com/150",
-  
-  getSavedFiles: async (userId: string) => {
-      const db = await initDB(true);
-      return await db.getAll('backpack_saves');
-  },
-  
-  toggleSave: async (fileId: string, userId: string) => {
-      const db = await initDB(true);
-      const existing = await db.get('backpack_saves', fileId);
-      if (existing) {
-          await db.delete('backpack_saves', fileId);
-          return false;
-      } else {
-          const file = await db.get('files', fileId);
-          if (file) {
-              await db.put('backpack_saves', { ...file, isSaved: true });
-              return true;
-          }
-          return false;
-      }
-  },
-
+  getSavedFiles: async () => [],
+  toggleSave: async () => true,
   sendFeedback: async () => {},
   getFeedbacks: async () => [],
   resolveFeedback: async () => {},
@@ -272,12 +257,16 @@ export const MockService = {
   updateUserRole: async () => {},
   updateUserGroup: async () => {},
   deleteUser: async () => {},
-  getAllUsers: async () => [],
+  getAllUsers: async () => (await initDB(true)).getAll('profiles'),
   createSubject: async () => {},
-  updateSubject: async () => {},
   deleteSubject: async () => {},
   manageSubjectDistribution: async () => {},
   getAdminStats: async () => ({ users: 0, groups: 0, files: 0, storage: 'Mock' }),
   claimAdminAccess: async () => true,
-  pinComment: async () => {}
+  pinComment: async () => {},
+  getFlashcardDecks: async () => [],
+  getDeckCards: async () => [],
+  createFlashcardDeck: async () => {},
+  updateFlashcardDeck: async () => {},
+  deleteFlashcardDeck: async () => {}
 };

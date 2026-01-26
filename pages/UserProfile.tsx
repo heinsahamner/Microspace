@@ -83,7 +83,6 @@ export const UserProfile: React.FC = () => {
                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
                </div>
            )}
-           <div className="absolute inset-0 bg-gradient-to-t from-gray-50/90 dark:from-black/90 via-transparent to-transparent"></div>
            
            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-20">
                <button onClick={() => navigate(-1)} className="p-2 bg-black/20 backdrop-blur-md text-white rounded-full hover:bg-black/40 transition-colors">
@@ -118,14 +117,24 @@ export const UserProfile: React.FC = () => {
 
                <div className="flex-1 text-center md:text-left min-w-0 w-full">
                    <h1 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white truncate leading-tight">{profile.username}</h1>
-                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2 text-sm">
-                       <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1 bg-gray-100 dark:bg-gray-900 px-2 py-0.5 rounded-md">
+                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-2">
+                       <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1 bg-gray-100 dark:bg-gray-900 px-2 py-0.5 rounded-md text-xs font-medium">
                            <Icons.Users className="w-3 h-3" /> {profile.group?.name || 'Sem turma'}
                        </span>
-                       <span className={`${rank.color} font-medium flex items-center gap-1 bg-gray-100 dark:bg-gray-900 px-2 py-0.5 rounded-md`}>
-                           {rank.label}
-                       </span>
-                   </div>
+                           {profile.titles?.map((title, idx) => (
+                           <span 
+                                key={idx}
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold border ${
+                                    title.type === 'monitor' 
+                                    ? 'bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800' 
+                                    : 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800'
+                                }`}
+                           >
+                               {title.type === 'monitor' ? <Icons.Shield className="w-3 h-3" /> : <Icons.Trophy className="w-3 h-3" />}
+                               {title.type === 'monitor' ? 'Monitor' : 'Rep.'} de {title.subject_name}
+                           </span>
+                       ))}
+                    </div>
                </div>
 
                <div className="flex-shrink-0 mt-2 md:mt-0">

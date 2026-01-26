@@ -99,7 +99,7 @@ export const Register: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1 uppercase">Email Escolar</label>
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1 uppercase">Email</label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <Icons.Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#7900c5] transition-colors" />
