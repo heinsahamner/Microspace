@@ -110,7 +110,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async () => {
-    alert("Login com Google está desativado nesta versão local.");
+    if (isDemoMode) {
+        alert("Login com Google desativado no modo DEMO.");
+        return;
+    }
+    
+    const { error } = await supabase!.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.origin,
+            queryParams: {
+                access_type: 'offline',
+                prompt: 'consent',
+            }
+        }
+    });
+
+    if (error) throw error;
   };
 
   const signInWithCredentials = async (email: string, pass: string, rememberMe: boolean = false): Promise<{ success: boolean; error?: string }> => {

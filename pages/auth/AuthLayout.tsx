@@ -1,59 +1,46 @@
-// Alerta: textos cringe (tudo placeholder)
 import React from 'react';
 import { Icons } from '../../components/Icons';
 
 export const AuthLayout: React.FC<{ children: React.ReactNode; title?: string; subtitle?: string }> = ({ children, title, subtitle }) => {
     return (
-        <div className="min-h-screen flex bg-white dark:bg-black transition-colors duration-200">
-            <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-[#1a0b2e] to-black relative overflow-hidden items-center justify-center p-12">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
-                <div className="absolute top-0 right-0 p-12">
-                    <div className="w-64 h-64 bg-[#7900c5] rounded-full filter blur-[128px] opacity-20 animate-pulse"></div>
-                </div>
+        <div className="min-h-screen w-full flex items-center justify-center bg-[#f8f9fc] dark:bg-[#050505] relative overflow-hidden transition-colors duration-500 font-inter selection:bg-[#7900c5] selection:text-white">
+            
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-400/20 dark:bg-purple-900/20 blur-[120px] animate-float opacity-70"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-400/20 dark:bg-indigo-900/20 blur-[120px] animate-float opacity-70" style={{ animationDelay: '2s' }}></div>
                 
-                <div className="relative z-10 max-w-lg text-left">
-                    <div className="w-16 h-16 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mb-8 border border-white/20 shadow-2xl">
-                         <span className="text-white text-3xl font-bold">M</span>
-                    </div>
-                    <h1 className="text-5xl font-bold text-white mb-6 leading-tight tracking-tight">
-                        Seu espaço de <br/>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b96df3] to-[#7900c5]">conhecimento.</span>
-                    </h1>
-                    <p className="text-lg text-gray-400 leading-relaxed">
-                        Publique materiais.
-                    </p>
-                    
-                    <div className="mt-12 flex items-center space-x-4">
-                        <div className="flex -space-x-3">
-                            {[1,2,3].map(i => (
-                                <div key={i} className="w-10 h-10 rounded-full bg-gray-800 border-2 border-[#1a0b2e] flex items-center justify-center text-xs font-bold text-gray-400">
-                                    <Icons.User className="w-4 h-4" />
-                                </div>
-                            ))}
-                        </div>
-                        <p className="text-sm text-gray-500 font-medium">???</p>
-                    </div>
-                </div>
+                <div className="absolute top-[20%] right-[20%] w-32 h-32 bg-gradient-to-br from-[#7900c5] to-violet-600 rounded-full blur-2xl opacity-20 dark:opacity-30 animate-pulse"></div>
+                <div className="absolute bottom-[20%] left-[15%] w-24 h-24 bg-gradient-to-tr from-blue-500 to-cyan-400 rounded-full blur-2xl opacity-20 dark:opacity-30 animate-pulse" style={{ animationDelay: '1.5s' }}></div>
             </div>
 
-            <div className="w-full lg:w-1/2 flex flex-col justify-center p-6 sm:p-12 xl:p-24 relative">
-                <div className="lg:hidden mb-8 text-center">
-                    <div className="w-12 h-12 bg-[#7900c5] rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/30">
-                         <span className="text-white text-2xl font-bold">M</span>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Microspace</h2>
-                </div>
-
-                <div className="max-w-sm w-full mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="mb-10">
-                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{title || 'Bem-vindo'}</h2>
-                        <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">{subtitle || 'Insira seus dados para continuar.'}</p>
-                    </div>
+            <div className="relative z-10 w-full max-w-[420px] sm:max-w-[520px] lg:max-w-[640px] mx-4">
+                <div className="group relative">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-[#7900c5] rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
                     
-                    {children}
+                    <div className="relative bg-white/70 dark:bg-[#121212]/60 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-[1.75rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] p-8 sm:p-10">
+                        
+                        <div className="flex flex-col items-center text-center mb-8">
+                            <div className="w-14 h-14 bg-gradient-to-br from-[#7900c5] to-[#9f5fd6] rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 mb-6 transform transition-transform group-hover:scale-110 duration-500">
+                                <span className="text-white text-2xl font-bold">M</span>
+                            </div>
+                            
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-2">
+                                {title || 'Bem-vindo(a)'}
+                            </h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-[280px]">
+                                {subtitle || 'Acesse sua conta para continuar.'}
+                            </p>
+                        </div>
 
-                    <div className="mt-12 text-center text-xs text-gray-400">
-                        &copy; 2026 Lucas Willian
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            {children}
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-gray-100/50 dark:border-white/5 text-center">
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-medium">
+                                Microspace
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

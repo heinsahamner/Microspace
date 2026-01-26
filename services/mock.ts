@@ -120,12 +120,16 @@ export const MockService = {
           const savedFile = await db.get('backpack_saves', f.id);
           const poll = polls.find(p => p.file_id === f.id);
 
-          let author_role: 'monitor' | 'representative' | null = null;
-          if (subject && subject.monitor_id === f.uploader_id) {
-              author_role = 'monitor';
-          } else {
-              const isRep = allReps.some(r => r.user_id === f.uploader_id && r.subject_id === f.subject_id);
-              if (isRep) author_role = 'representative';
+          let author_role: 'teacher' | 'monitor' | 'representative' | null = null;
+          if (subject) {
+              if (subject.teacher_id === f.uploader_id) {
+                  author_role = 'teacher';
+              } else if (subject.monitor_id === f.uploader_id) {
+                  author_role = 'monitor';
+              } else {
+                  const isRep = allReps.some(r => r.user_id === f.uploader_id && r.subject_id === f.subject_id);
+                  if (isRep) author_role = 'representative';
+              }
           }
 
           return { ...f, uploader, subject, likes_count: fileLikes.length, comments_count: commentsCount, isLiked, isSaved: !!savedFile, poll, author_role };
@@ -190,6 +194,15 @@ export const MockService = {
       const db = await initDB(true); 
       const s = await db.get('subjects', id); 
       if(s) await db.put('subjects', {...s, ...updates}); 
+  },
+
+  createSubject: async (name: string, color: string, icon: string, groupId: string, monitorId?: string, teacherId?: string) => {
+      const db = await initDB(true);
+      await db.put('subjects', {
+          id: Math.random().toString(36),
+          name, color_hex: color, icon_name: icon, group_id: groupId,
+          monitor_id: monitorId, teacher_id: teacherId
+      });
   },
 
   getSubjectRepresentatives: async (subjectId: string) => {
@@ -258,7 +271,6 @@ export const MockService = {
   updateUserGroup: async () => {},
   deleteUser: async () => {},
   getAllUsers: async () => (await initDB(true)).getAll('profiles'),
-  createSubject: async () => {},
   deleteSubject: async () => {},
   manageSubjectDistribution: async () => {},
   getAdminStats: async () => ({ users: 0, groups: 0, files: 0, storage: 'Mock' }),

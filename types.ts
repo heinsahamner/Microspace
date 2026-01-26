@@ -43,6 +43,7 @@ export interface Subject {
   group_id: string;
   file_count?: number;
   monitor_id?: string | null;
+  teacher_id?: string | null;
 }
 
 export interface Comment {
@@ -120,7 +121,7 @@ export interface FileData {
   isLiked?: boolean; 
   isSaved?: boolean;
   poll?: Poll | null;
-  author_role?: 'monitor' | 'representative' | null;
+  author_role?: 'teacher' | 'monitor' | 'representative' | null;
 }
 
 export interface Interaction {

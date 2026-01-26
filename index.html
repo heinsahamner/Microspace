@@ -2,8 +2,10 @@
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Microspace</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#7900c5">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -14,9 +16,9 @@
               primary: 'var(--primary-color)',
               gray: {
                 750: '#2d3748',
-                850: '#1a202c', 
-                900: '#121212',
-                950: '#000000',
+                850: '#1a202c',
+                900: '#121212', 
+                950: '#000000', 
               }
             },
             animation: {
@@ -35,14 +37,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       :root {
-        --primary-color: #7900c5; 
+        --primary-color: #7900c5;
       }
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #f9fafb;
+        background-color: #f9fafb; 
+        overscroll-behavior-y: none; 
       }
       html.dark body {
-        background-color: #000000; 
+        background-color: #000000;
       }
       .no-scrollbar::-webkit-scrollbar {
         display: none;
@@ -72,10 +75,22 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('SW registered: ', registration);
+            })
+            .catch(registrationError => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

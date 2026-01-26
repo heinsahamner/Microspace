@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { FileData, Role, FlashcardDeck, Flashcard, FileAttachment } from '../types';
 import { MockService, initDB } from './mock';
+import { OfflineService } from './offline'; 
 
 const getEnv = (key: string): string => {
     try {
@@ -146,107 +147,46 @@ const RealService = {
         }
     },
 
-    getSavedFiles: async (userId: string) => {
-        if (!supabase) return [];
-        try {
-            const { data, error } = await supabase.from('saves')
-                .select(`
-                    file:files (
-                        *,
-                        subject:subjects(*), 
-                        uploader:profiles(*), 
-                        likes:likes(count), 
-                        my_likes:likes(user_id), 
-                        comments:comments(count),
-                        poll:polls(*, options:poll_options(*), votes:poll_votes(option_id, user_id))
-                    )
-                `)
-                .eq('user_id', userId);
-
-            if (error) throw error;
-
-            const subjectIds = data
-                .map((item: any) => item.file?.subject?.id)
-                .filter(Boolean) as string[];
-            
-            let reps: any[] = [];
-            if (subjectIds.length > 0) {
-                const { data: fetchedReps } = await supabase
-                    .from('subject_representatives')
-                    .select('user_id, subject_id')
-                    .in('subject_id', subjectIds);
-                reps = fetchedReps || [];
-            }
-
-            return data.map((item: any) => {
-                const f = item.file;
-                if (!f) return null;
-
-                let pollData = null;
-                if (f.poll && f.poll.length > 0) {
-                    const p = f.poll[0];
-                    const voteCounts: Record<string, number> = {};
-                    p.options.forEach((o: any) => voteCounts[o.id] = 0);
-                    
-                    if (p.votes) {
-                        p.votes.forEach((v: any) => {
-                            if (voteCounts[v.option_id] !== undefined) voteCounts[v.option_id]++;
-                        });
-                    }
-
-                    const myVote = p.votes?.find((v: any) => v.user_id === userId);
-
-                    pollData = {
-                        ...p,
-                        total_votes: p.votes?.length || 0,
-                        options: p.options.map((o: any) => ({
-                            ...o,
-                            votes: voteCounts[o.id] || 0
-                        })).sort((a:any, b:any) => a.id.localeCompare(b.id)),
-                        user_vote_option_id: myVote?.option_id || null
-                    };
-                }
-
-                let author_role: 'monitor' | 'representative' | null = null;
+   getSavedFiles: async (userId: string) => {
+        const savedFiles = await OfflineService.getAllFiles();
+        
+        if (savedFiles.length > 0 && navigator.onLine && supabase) {
+            const ids = savedFiles.map(f => f.id);
+            try {
+                const { data: freshFiles } = await supabase.from('files')
+                    .select(`*, subject:subjects(*), uploader:profiles(*)`)
+                    .in('id', ids);
                 
-                if (f.subject && f.subject.monitor_id === f.uploader_id) {
-                    author_role = 'monitor';
-                } 
-                else if (reps.some((r: any) => r.user_id === f.uploader_id && r.subject_id === f.subject_id)) {
-                    author_role = 'representative';
+                if (freshFiles) {
+                    for (const fresh of freshFiles) {
+                        const updated = { ...fresh, isSaved: true };
+                        await OfflineService.saveFile(updated);
+                    }
+                    return await OfflineService.getAllFiles();
                 }
-
-                return {
-                    ...f,
-                    isLiked: f.my_likes?.some((l: any) => l.user_id === userId),
-                    likes_count: f.likes?.[0]?.count || 0,
-                    comments_count: f.comments?.[0]?.count || 0,
-                    isSaved: true, 
-                    poll: pollData,
-                    author_role
-                };
-            }).filter(Boolean);
-        } catch (e) {
-            console.error("Backpack Fetch Error:", e);
-            return [];
+            } catch (e) {
+                console.warn("Could not refresh backpack items from cloud", e);
+            }
         }
+
+        return savedFiles;
     },
 
     toggleSave: async (fileId: string, userId: string) => {
-        if (!supabase) return false;
         
-        const { data: existing } = await supabase.from('saves')
-            .select('id')
-            .eq('file_id', fileId)
-            .eq('user_id', userId)
-            .single();
+        const isSaved = await OfflineService.isFileSaved(fileId);
         
-        if (existing) {
-            await supabase.from('saves').delete().eq('id', existing.id);
+        if (isSaved) {
+            await OfflineService.removeFile(fileId);
             return false;
         } else {
-            await supabase.from('saves').insert({ file_id: fileId, user_id: userId });
-            return true;
+            const fullFile = await RealService.getFile(fileId);
+            if (fullFile) {
+                // @ts-ignore
+                await OfflineService.saveFile({ ...fullFile, isSaved: true });
+                return true;
+            }
+            return false;
         }
     },
 
@@ -282,8 +222,7 @@ const RealService = {
                 subject:subjects(*), 
                 uploader:profiles(*), 
                 likes:likes(count), 
-                my_likes:likes(user_id), 
-                my_saves:saves(user_id),
+                my_likes:likes(user_id),
                 comments:comments(count),
                 poll:polls(*, options:poll_options(*), votes:poll_votes(option_id, user_id))
             `);
@@ -347,7 +286,7 @@ const RealService = {
                     isLiked: f.my_likes?.some((l: any) => l.user_id === currentUserId),
                     likes_count: f.likes?.[0]?.count || 0,
                     comments_count: f.comments?.[0]?.count || 0,
-                    isSaved: f.my_saves?.some((s: any) => s.user_id === currentUserId),
+                    isSaved: false,
                     poll: pollData,
                     author_role
                 };
@@ -638,13 +577,15 @@ const RealService = {
         if(supabase) await supabase.from('profiles').delete().eq('id', userId); 
     },
 
-    createSubject: async (name: string, color: string, icon: string, groupId: string) => { 
+    createSubject: async (name: string, color: string, icon: string, groupId: string, monitorId?: string, teacherId?: string) => { 
         if(!supabase) return;
         const { error } = await supabase.from('subjects').insert({ 
             name, 
             color_hex: color, 
             icon_name: icon, 
-            group_id: groupId 
+            group_id: groupId,
+            monitor_id: monitorId || null,
+            teacher_id: teacherId || null
         }); 
         if (error) { 
             console.error("Create Subject Error:", error); 
@@ -673,18 +614,9 @@ const RealService = {
         for (const gid of targetGroupIds) {
             const existing = allSubjects.find(s => s.group_id === gid);
             if (existing) { 
-                await supabase.from('subjects').update({ 
-                    name: newName, 
-                    color_hex: color, 
-                    icon_name: icon 
-                }).eq('id', existing.id); 
+                await supabase.from('subjects').update({ name: newName, color_hex: color, icon_name: icon }).eq('id', existing.id); 
             } else { 
-                await supabase.from('subjects').insert({ 
-                    name: newName, 
-                    color_hex: color, 
-                    icon_name: icon, 
-                    group_id: gid 
-                }); 
+                await supabase.from('subjects').insert({ name: newName, color_hex: color, icon_name: icon, group_id: gid }); 
             }
         }
     },

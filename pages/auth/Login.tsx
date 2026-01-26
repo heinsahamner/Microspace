@@ -6,14 +6,21 @@ import { Icons } from '../../components/Icons';
 import { clearSession } from '../../services/supabase';
 
 export const Login: React.FC = () => {
-    const { signInWithCredentials } = useAuth();
+    const { signIn, signInWithCredentials } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const handleGoogleLogin = async () => {
+        try {
+            await signIn();
+        } catch (err: any) {
+            setError('Erro ao iniciar login com Google. ' + (err.message || ''));
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,80 +42,95 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <AuthLayout title="Acesse sua conta" subtitle="Bem-vindo de volta! Por favor, insira seus dados.">
+        <AuthLayout title="Olá novamente!" subtitle="Sentimos sua falta. Vamos conectar você.">
             
-            <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+            <div className="space-y-5">
                 {error && (
-                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm flex flex-col gap-2 animate-in shake">
-                        <div className="flex items-center space-x-3">
-                            <Icons.AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <div className="bg-red-50/80 dark:bg-red-900/20 backdrop-blur-sm border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-xs font-medium flex flex-col gap-1.5 animate-in shake">
+                        <div className="flex items-center gap-2">
+                            <Icons.AlertCircle className="w-4 h-4 flex-shrink-0" />
                             <span>{error}</span>
                         </div>
                         <button 
                             type="button" 
                             onClick={clearSession} 
-                            className="text-xs font-bold underline hover:text-red-800 dark:hover:text-red-200 text-left pl-8"
+                            className="underline hover:text-red-800 dark:hover:text-red-200 text-left pl-6"
                         >
-                            Resetar site e Cache (Correção de Erros)
+                            Corrigir erro de sessão
                         </button>
                     </div>
                 )}
 
-                <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1 uppercase">Email</label>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Icons.Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#7900c5] transition-colors" />
-                        </div>
-                        <input 
-                            type="email" 
-                            required
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                            className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7900c5] focus:bg-white dark:focus:bg-black transition-all"
-                            placeholder="valentina@eccard.miller"
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-1.5">
-                    <div className="flex justify-between items-center ml-1">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Senha</label>
-                        <Link to="/forgot-password" className="text-xs font-bold text-[#7900c5] hover:underline">
-                            Esqueceu a senha?
-                        </Link>
-                    </div>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Icons.Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#7900c5] transition-colors" />
-                        </div>
-                        <input 
-                            type="password" 
-                            required
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7900c5] focus:bg-white dark:focus:bg-black transition-all"
-                            placeholder="••••••••"
-                        />
-                    </div>
-                </div>
-
-                <button 
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-[#7900c5] text-white font-bold py-4 rounded-xl hover:bg-[#60009e] transition-all shadow-lg shadow-purple-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center mt-2"
+                <button
+                    onClick={handleGoogleLogin}
+                    type="button"
+                    className="w-full flex items-center justify-center space-x-3 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 border border-gray-200/60 dark:border-white/10 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl transition-all duration-300 group"
                 >
-                    {loading ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : 'Entrar na conta'}
+                    <Icons.Google className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    <span>Continuar com Google</span>
                 </button>
-            </form>
+
+                <div className="relative flex py-2 items-center">
+                    <div className="flex-grow border-t border-gray-200/60 dark:border-white/10"></div>
+                    <span className="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-bold uppercase tracking-widest">ou</span>
+                    <div className="flex-grow border-t border-gray-200/60 dark:border-white/10"></div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-1">
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Icons.Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#7900c5] transition-colors" />
+                            </div>
+                            <input 
+                                type="email" 
+                                required
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50/50 dark:bg-black/20 border border-gray-200/50 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#7900c5]/50 focus:bg-white/80 dark:focus:bg-black/40 focus:border-transparent transition-all backdrop-blur-sm"
+                                placeholder="Seu email"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Icons.Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#7900c5] transition-colors" />
+                            </div>
+                            <input 
+                                type="password" 
+                                required
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50/50 dark:bg-black/20 border border-gray-200/50 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#7900c5]/50 focus:bg-white/80 dark:focus:bg-black/40 focus:border-transparent transition-all backdrop-blur-sm"
+                                placeholder="Sua senha"
+                            />
+                        </div>
+                        <div className="flex justify-end pt-1">
+                            <Link to="/forgot-password" className="text-xs font-bold text-gray-400 hover:text-[#7900c5] transition-colors">
+                                Esqueceu sua senha?
+                            </Link>
+                        </div>
+                    </div>
+
+                    <button 
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-gradient-to-r from-[#7900c5] to-[#9f5fd6] hover:to-[#b27bf9] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex justify-center items-center"
+                    >
+                        {loading ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : 'Entrar'}
+                    </button>
+                </form>
+            </div>
 
             <div className="mt-8 text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Não tem uma conta?{' '}
-                    <Link to="/register" className="font-bold text-[#7900c5] hover:text-[#60009e] transition-colors">
-                        Cadastre-se grátis
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                    Ainda não tem uma conta?{' '}
+                    <Link to="/register" className="font-bold text-[#7900c5] hover:text-[#9f5fd6] transition-colors underline decoration-2 decoration-transparent hover:decoration-[#7900c5]">
+                        Criar conta
                     </Link>
                 </p>
             </div>

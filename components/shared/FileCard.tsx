@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { FileData, FileAttachment } from '../../types';
 import { Icons } from '../Icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Service } from '../../services/supabase';
+import { OfflineService } from '../../services/offline'; // Import OfflineService
 import { DeepLinkService } from '../../services/deepLink';
 import { useNavigate } from 'react-router-dom';
 import { RichTextRenderer } from './RichTextRenderer';
@@ -22,6 +24,7 @@ const AttachmentViewer: React.FC<{ attachment: FileAttachment }> = ({ attachment
     const [isExpanded, setIsExpanded] = useState(false);
     const isImage = attachment.type.startsWith('image/');
     const isPDF = attachment.type === 'application/pdf';
+    const isDoc = attachment.name.endsWith('.doc') || attachment.name.endsWith('.docx') || attachment.type.includes('word') || attachment.type.includes('officedocument');
 
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -89,11 +92,12 @@ const AttachmentViewer: React.FC<{ attachment: FileAttachment }> = ({ attachment
         );
     }
 
+    // Docs / Generic Fallback
     return (
         <div className="mt-2 flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
             <div className="flex items-center gap-3 overflow-hidden">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
-                    <Icons.FileText className="w-4 h-4" />
+                <div className={`p-2 rounded-lg ${isDoc ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-gray-200 dark:bg-gray-800 text-gray-500'}`}>
+                    {isDoc ? <Icons.FileWord className="w-4 h-4" /> : <Icons.FileText className="w-4 h-4" />}
                 </div>
                 <div className="flex flex-col min-w-0">
                     <span className="text-xs font-bold text-gray-900 dark:text-white truncate">{attachment.name}</span>
@@ -112,21 +116,42 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
   const navigate = useNavigate();
   
   const [isLiked, setIsLiked] = useState(file.isLiked);
-  const [isSaved, setIsSaved] = useState(file.isSaved);
+  const [isSaved, setIsSaved] = useState(file.isSaved || false);
   const [likesCount, setLikesCount] = useState(file.likes_count);
   const [commentCount, setCommentCount] = useState(file.comments_count || 0);
   const [isAnimating, setIsAnimating] = useState(false);
   
+  // Controls
   const [showMenu, setShowMenu] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
+  // Check Save Status Locally on Mount (Since cloud doesn't know about local saves)
+  useEffect(() => {
+      // Only check if it wasn't already passed as true (e.g. from Backpack page)
+      if (!isSaved) {
+          OfflineService.isFileSaved(file.id).then(status => {
+              if (status) setIsSaved(true);
+          });
+      }
+  }, [file.id]);
+
+  // Permissions
   const canEdit = user && file.uploader_id === user.id;
   const canDelete = user && (file.uploader_id === user.id || profile?.role === 'admin');
 
+  // Gamification Styles
   let borderClass = "border border-gray-100 dark:border-gray-800";
   let badge = null;
 
-  if (file.author_role === 'monitor') {
+  if (file.author_role === 'teacher') {
+      borderClass = "border-2 border-purple-400 dark:border-purple-600 shadow-[0_0_15px_rgba(121,0,197,0.15)]";
+      badge = (
+          <div className="flex items-center gap-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full text-[10px] font-bold border border-purple-200 dark:border-purple-800">
+              <Icons.User className="w-3 h-3" />
+              <span>Professor</span>
+          </div>
+      );
+  } else if (file.author_role === 'monitor') {
       borderClass = "border-2 border-cyan-400 dark:border-cyan-600 shadow-[0_0_15px_rgba(34,211,238,0.15)]";
       badge = (
           <div className="flex items-center gap-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 rounded-full text-[10px] font-bold border border-cyan-200 dark:border-cyan-800">
@@ -142,7 +167,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
               <span>Rep</span>
           </div>
       );
-    }
+  }
 
   const handleAddToDiary = () => {
     const payload = {
@@ -154,12 +179,11 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
         type: file.category === 'assessment' ? 'exam' : 'homework'
     };
 
-    // Deep Link com o Diary (não funciona ainda)
     const diaryUrl = DeepLinkService.generateLink(
-        'https://diary.microspace.site/',
+        'https://diary.microspace.site/', 
         'create', 
         {}, 
-        payload 
+        payload
     );
 
     window.open(diaryUrl, '_blank');
@@ -167,7 +191,6 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
 
   const handleLike = async () => {
       if (!user) return;
-      
       const newIsLiked = !isLiked;
       setIsLiked(newIsLiked);
       setLikesCount(prev => newIsLiked ? prev + 1 : prev - 1);
@@ -176,7 +199,6 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
           setIsAnimating(true);
           setTimeout(() => setIsAnimating(false), 300);
       }
-
       await Service.toggleLike(file.id, user.id);
   };
 
@@ -184,7 +206,6 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       if (!user) return;
       const newStatus = !isSaved;
       setIsSaved(newStatus);
-      
       await Service.toggleSave(file.id, user.id);
       if (onToggleSave) onToggleSave(file.id, newStatus);
   };
@@ -257,9 +278,18 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
                 <Highlight text={file.title} term={highlightTerm} />
                 {badge}
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 hover:underline flex items-center gap-1">
-              {file.uploader?.username} • {new Date(file.created_at).toLocaleDateString()}
-            </p>
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                {file.subject && (
+                    <span className="flex items-center gap-1.5 font-bold hover:underline" style={{ color: file.subject.color_hex }}>
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: file.subject.color_hex }}></div>
+                        {file.subject.name}
+                    </span>
+                )}
+                <span>•</span>
+                <span className="hover:underline">{file.uploader?.username}</span>
+                <span>•</span>
+                <span>{new Date(file.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+            </div>
           </div>
         </div>
         
@@ -278,6 +308,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
             highlightTerm={highlightTerm}
           />
           
+          {/* ATTACHMENTS VIEWER */}
           {file.attachments && file.attachments.length > 0 && (
               <div className="mt-4 grid grid-cols-1 gap-3">
                   {file.attachments.map((att, idx) => (
@@ -286,6 +317,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
               </div>
           )}
 
+          {/* POLL RENDERER */}
           {file.poll && <PollWidget poll={file.poll} />}
       </div>
 
@@ -316,7 +348,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
                 className={`text-xs font-medium flex items-center space-x-1.5 px-3 py-1.5 rounded-lg transition-colors ${isSaved ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-100'}`}
             >
                 <Icons.Backpack className="w-4 h-4" />
-                <span className="hidden sm:inline">{isSaved ? 'Na Mochila' : 'Salvar'}</span>
+                <span className="hidden sm:inline">{isSaved ? 'Salvo no App' : 'Salvar Local'}</span>
             </button>
 
             <button 

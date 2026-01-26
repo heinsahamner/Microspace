@@ -105,7 +105,7 @@ export const AdminPanel: React.FC = () => {
       setUsers(results[1] as Profile[]);
       
       if (currentView === 'dashboard' && statsIndex !== -1) setStats(results[statsIndex] as any);
-      if ((currentView === 'subjects' || currentView === 'users') && subjectsIndex !== -1) setSubjects(results[subjectsIndex] as Subject[]);
+      if ((currentView === 'subjects' || currentView === 'users' || modalMode === 'titles') && subjectsIndex !== -1) setSubjects(results[subjectsIndex] as Subject[]);
       if (currentView === 'feedbacks' && feedbacksIndex !== -1) setFeedbacks(results[feedbacksIndex] as Feedback[]);
   };
 
@@ -511,7 +511,8 @@ export const AdminPanel: React.FC = () => {
                   name: editingItem.name, 
                   color_hex: editingItem.color_hex, 
                   icon_name: editingItem.icon_name,
-                  monitor_id: editingItem.monitor_id || null
+                  monitor_id: editingItem.monitor_id || null,
+                  teacher_id: editingItem.teacher_id || null
               });
           } else {
               if (selectedGroupIds.length === 0) return alert("Selecione pelo menos uma turma.");
@@ -567,6 +568,7 @@ export const AdminPanel: React.FC = () => {
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                               {subList.map(s => {
                                   const monitorName = users.find(u => u.id === s.monitor_id)?.username;
+                                  const teacherName = users.find(u => u.id === s.teacher_id)?.username;
                                   return (
                                   <div key={s.id} className="group flex flex-col p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/30 hover:shadow-md transition-all relative overflow-hidden">
                                       <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{backgroundColor: s.color_hex}}></div>
@@ -584,12 +586,20 @@ export const AdminPanel: React.FC = () => {
                                           </div>
                                       </div>
 
-                                      {monitorName && (
-                                          <div className="flex items-center gap-1.5 mt-2 ml-1 text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg w-fit">
-                                              <Icons.Shield className="w-3 h-3 text-blue-500" />
-                                              <span className="truncate max-w-[100px]">Monitor: {monitorName}</span>
-                                          </div>
-                                      )}
+                                      <div className="space-y-1 mt-2">
+                                          {teacherName && (
+                                              <div className="flex items-center gap-1.5 ml-1 text-xs text-gray-500 dark:text-gray-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-lg w-fit">
+                                                  <Icons.User className="w-3 h-3 text-purple-500" />
+                                                  <span className="truncate max-w-[100px]">Prof. {teacherName}</span>
+                                              </div>
+                                          )}
+                                          {monitorName && (
+                                              <div className="flex items-center gap-1.5 ml-1 text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg w-fit">
+                                                  <Icons.Shield className="w-3 h-3 text-blue-500" />
+                                                  <span className="truncate max-w-[100px]">Mon. {monitorName}</span>
+                                              </div>
+                                          )}
+                                      </div>
                                   </div>
                               )})}
                           </div>
@@ -609,24 +619,46 @@ export const AdminPanel: React.FC = () => {
                           </div>
                           
                           {modalMode === 'edit' && (
-                              <div>
-                                  <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase flex items-center gap-2">
-                                      <Icons.Shield className="w-3 h-3" /> Monitor da Matéria
-                                  </label>
-                                  <div className="relative">
-                                      <select 
-                                        value={editingItem.monitor_id || ''}
-                                        onChange={e => setEditingItem({...editingItem, monitor_id: e.target.value})}
-                                        className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-[#7900c5] outline-none text-gray-900 dark:text-white appearance-none cursor-pointer"
-                                      >
-                                          <option value="">-- Nenhum Monitor --</option>
-                                          {users.filter(u => u.group_id === editingItem.group_id).map(u => (
-                                              <option key={u.id} value={u.id}>{u.username}</option>
-                                          ))}
-                                      </select>
-                                      <Icons.Dynamic name="chevron-down" className="w-4 h-4 absolute right-3 top-3.5 text-gray-400 pointer-events-none" />
+                              <div className="grid grid-cols-1 gap-4">
+                                  {/* TEACHER SELECT */}
+                                  <div>
+                                      <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase flex items-center gap-2">
+                                          <Icons.User className="w-3 h-3" /> Professor Responsável
+                                      </label>
+                                      <div className="relative">
+                                          <select 
+                                            value={editingItem.teacher_id || ''}
+                                            onChange={e => setEditingItem({...editingItem, teacher_id: e.target.value})}
+                                            className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-[#7900c5] outline-none text-gray-900 dark:text-white appearance-none cursor-pointer"
+                                          >
+                                              <option value="">-- Nenhum Professor --</option>
+                                              {users.filter(u => u.group_id === editingItem.group_id && (u.role === 'teacher' || u.role === 'admin')).map(u => (
+                                                  <option key={u.id} value={u.id}>{u.username}</option>
+                                              ))}
+                                          </select>
+                                          <Icons.Dynamic name="chevron-down" className="w-4 h-4 absolute right-3 top-3.5 text-gray-400 pointer-events-none" />
+                                      </div>
                                   </div>
-                                  <p className="text-[10px] text-gray-400 mt-1">O aluno selecionado receberá o título de Monitor nesta matéria.</p>
+
+                                  {/* MONITOR SELECT */}
+                                  <div>
+                                      <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase flex items-center gap-2">
+                                          <Icons.Shield className="w-3 h-3" /> Monitor da Matéria
+                                      </label>
+                                      <div className="relative">
+                                          <select 
+                                            value={editingItem.monitor_id || ''}
+                                            onChange={e => setEditingItem({...editingItem, monitor_id: e.target.value})}
+                                            className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-[#7900c5] outline-none text-gray-900 dark:text-white appearance-none cursor-pointer"
+                                          >
+                                              <option value="">-- Nenhum Monitor --</option>
+                                              {users.filter(u => u.group_id === editingItem.group_id).map(u => (
+                                                  <option key={u.id} value={u.id}>{u.username}</option>
+                                              ))}
+                                          </select>
+                                          <Icons.Dynamic name="chevron-down" className="w-4 h-4 absolute right-3 top-3.5 text-gray-400 pointer-events-none" />
+                                      </div>
+                                  </div>
                               </div>
                           )}
 
@@ -757,8 +789,7 @@ export const AdminPanel: React.FC = () => {
                                   {f.status === 'open' && (
                                       <button 
                                           onClick={() => handleResolveFeedback(f.id)}
-                                          className="w-full md:w-auto px-4 py-2 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-lg text-xs font-bold hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors flex items-center justify-center gap-2"
-                                      >
+                                          className="w-full md:w-auto px-4 py-2 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-lg text-xs font-bold hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors flex items-center justify-center gap-2">
                                           <Icons.BadgeCheck className="w-4 h-4" /> Marcar Resolvido
                                       </button>
                                   )}

@@ -10,6 +10,7 @@ export const Backpack: React.FC = () => {
   const { user } = useAuth();
   const [savedFiles, setSavedFiles] = useState<FileData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
@@ -18,11 +19,32 @@ export const Backpack: React.FC = () => {
   useEffect(() => {
       const fetchSaved = async () => {
           if (!user) return;
-          const data = await Service.getSavedFiles(user.id);
-          setSavedFiles(data);
-          setLoading(false);
+          try {
+              const data = await Service.getSavedFiles(user.id);
+              setSavedFiles(data);
+              
+              if (!navigator.onLine) {
+                  setIsOfflineMode(true);
+              }
+          } catch (e) {
+              console.error(e);
+          } finally {
+              setLoading(false);
+          }
       };
+      
       fetchSaved();
+
+      const handleOnline = () => { setIsOfflineMode(false); fetchSaved(); };
+      const handleOffline = () => setIsOfflineMode(true);
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      return () => {
+          window.removeEventListener('online', handleOnline);
+          window.removeEventListener('offline', handleOffline);
+      };
   }, [user]);
 
   const handleUnsave = (id: string, status: boolean) => {
@@ -57,16 +79,28 @@ export const Backpack: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-black p-4 md:max-w-5xl md:mx-auto pb-24 transition-colors duration-200">
        
        <div className="mb-8 pt-4 animate-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center space-x-4 mb-2">
-                <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center shadow-sm">
-                    <Icons.Backpack className="w-7 h-7" />
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4 mb-2">
+                    <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center shadow-sm">
+                        <Icons.Backpack className="w-7 h-7" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Mochila</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                            {savedFiles.length} {savedFiles.length === 1 ? 'item salvo' : 'itens salvos'}
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Mochila</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        {savedFiles.length} {savedFiles.length === 1 ? 'item salvo' : 'itens salvos'}
-                    </p>
-                </div>
+                
+                {isOfflineMode && (
+                    <div className="flex flex-col items-end animate-pulse">
+                        <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 border border-orange-200 dark:border-orange-800">
+                            <Icons.Dynamic name="wifi-off" className="w-3 h-3" />
+                            Modo Offline
+                        </div>
+                        <span className="text-[10px] text-gray-400 mt-1">Exibindo cópia local</span>
+                    </div>
+                )}
             </div>
        </div>
 

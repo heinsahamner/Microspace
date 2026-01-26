@@ -209,7 +209,7 @@ export const TopBar: React.FC = () => {
                         </div>
                         <div>
                             <h2 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">Microspace</h2>
-                            <p className="text-xs text-gray-400 font-medium">Ecossistema Educacional</p>
+                            <p className="text-xs text-gray-400 font-medium">Apps:</p>
                         </div>
                     </div>
                     <button 
@@ -248,7 +248,7 @@ export const TopBar: React.FC = () => {
                 <div className="p-6 pt-2 text-center">
                     <div className="w-12 h-1 bg-gray-100 dark:bg-gray-800 rounded-full mx-auto mb-4"></div>
                     <p className="text-[10px] text-gray-300 dark:text-gray-600 font-medium uppercase tracking-widest">
-                        Versão 0.7.0 (Pré-Alpha)
+                        Versão 0.7.1 (Pré-Alpha)
                     </p>
                 </div>
             </div>

@@ -190,8 +190,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         <div className="bg-gray-50 dark:bg-black/50 px-4 py-2 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-[10px] text-gray-400 font-medium">
             <span>Microspace Spotlight</span>
             <div className="flex gap-3">
-                <span>Navigate <b className="text-gray-600 dark:text-gray-300">↑↓</b></span>
-                <span>Select <b className="text-gray-600 dark:text-gray-300">↵</b></span>
+                <span>Navegar <b className="text-gray-600 dark:text-gray-300">↑↓</b></span>
+                <span>Selecionar <b className="text-gray-600 dark:text-gray-300">↵</b></span>
             </div>
         </div>
       </div>

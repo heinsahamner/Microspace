@@ -166,7 +166,7 @@ export const Settings: React.FC = () => {
             profile,
             preferences,
             timestamp: new Date().toISOString(),
-            app_version: '0.7.0'
+            app_version: '0.7.1'
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -359,7 +359,7 @@ export const Settings: React.FC = () => {
                         />
                         <div className="p-4 flex justify-between items-center text-xs text-gray-400 bg-gray-50 dark:bg-gray-900/50">
                             <span>Microspace</span>
-                            <span className="font-mono">v0.7.0 (Pré-Alpha)</span>
+                            <span className="font-mono">v0.7.1 (Pré-Alpha)</span>
                         </div>
                     </div>
                 </div>

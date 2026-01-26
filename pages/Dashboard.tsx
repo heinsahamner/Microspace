@@ -57,7 +57,7 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black pb-24">
       <div className="bg-white dark:bg-[#121212] border-b border-gray-100 dark:border-gray-800 pb-8 pt-6 px-6 rounded-b-[2.5rem] shadow-sm relative overflow-hidden">
-          <div className="md:max-w-4xl md:mx-auto relative z-10">
+          <div className="md:max-w-7xl md:mx-auto relative z-10">
               
               <div className="mb-8">
                   <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 uppercase tracking-wide opacity-80">
@@ -101,7 +101,7 @@ export const Dashboard: React.FC = () => {
           </div>
       </div>
 
-      <div className="md:max-w-4xl md:mx-auto px-6 mt-8 space-y-10">
+      <div className="md:max-w-7xl md:mx-auto px-6 mt-8 space-y-10">
           
           <div>
               <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 mb-4 uppercase tracking-wider">Acesso Rápido</h3>
