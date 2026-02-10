@@ -9,7 +9,6 @@ import { Icons } from '../components/Icons';
 import { MarkdownEditor } from '../components/shared/MarkdownEditor';
 import { FileCard } from '../components/shared/FileCard';
 
-// Helper component for Mobile Tabs
 const MobileTabControl: React.FC<{ activeTab: string; onChange: (tab: string) => void }> = ({ activeTab, onChange }) => (
     <div className="flex bg-white dark:bg-[#121212] border-t border-gray-200 dark:border-gray-800 fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe">
         <button 
@@ -44,11 +43,9 @@ export const Upload: React.FC = () => {
   
   const isEditMode = !!id;
 
-  // Data State
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   
-  // Form State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [subjectId, setSubjectId] = useState('');
@@ -60,12 +57,10 @@ export const Upload: React.FC = () => {
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
 
-  // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   
-  // Mobile specific state
   const [mobileTab, setMobileTab] = useState<'content' | 'config' | 'preview'>('content');
 
   useEffect(() => {
@@ -88,14 +83,11 @@ export const Upload: React.FC = () => {
       }
   }, [targetGroupId]);
 
-  // Determine permissions based on selected subject
   const canPostOfficial = useMemo(() => {
       if (!profile || !user) return false;
       
-      // 1. Admins always can
       if (profile.role === 'admin') return true;
       
-      // 2. Check specific subject assignment (Monitor OR Teacher)
       const selectedSubject = subjects.find(s => s.id === subjectId);
       if (selectedSubject) {
           if (selectedSubject.monitor_id === user.id) return true;
@@ -105,7 +97,6 @@ export const Upload: React.FC = () => {
       return false;
   }, [profile, user, subjects, subjectId]);
 
-  // Reset to community if permission is lost during selection change
   useEffect(() => {
       if (!canPostOfficial) {
           setSourceType('community');
@@ -136,8 +127,6 @@ export const Upload: React.FC = () => {
           });
       }
   }, [id, user, isEditMode]);
-
-  // --- Handlers ---
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files) addFiles(Array.from(e.target.files));
@@ -178,6 +167,9 @@ export const Upload: React.FC = () => {
   const handleSubmit = async () => {
     if (!subjectId || !title || !targetGroupId) {
         addToast("Preencha os campos obrigatórios (Título, Turma, Matéria).", "error");
+        if (window.innerWidth < 768 && (!subjectId || !targetGroupId)) {
+            setMobileTab('config');
+        }
         return;
     }
 
@@ -256,11 +248,8 @@ export const Upload: React.FC = () => {
 
   if (isLoadingData) return <div className="min-h-screen flex items-center justify-center dark:bg-black dark:text-white">Carregando dados...</div>;
 
-  // --- COMPONENT SECTIONS ---
-
   const renderEditor = () => (
       <div className="space-y-6 animate-in slide-in-from-bottom-2">
-          {/* Title Input */}
           <div className="space-y-2">
                 <input 
                     type="text" 
@@ -272,7 +261,6 @@ export const Upload: React.FC = () => {
                 />
           </div>
 
-          {/* Files Area */}
           <div 
                 onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                 onDragLeave={() => setIsDragOver(false)}
@@ -328,12 +316,10 @@ export const Upload: React.FC = () => {
                 </div>
           </div>
 
-          {/* Editor */}
           <div className="h-[400px] shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
               <MarkdownEditor value={description} onChange={setDescription} />
           </div>
 
-          {/* Poll Section */}
           <div className={`border rounded-xl transition-all duration-300 overflow-hidden ${isPollEnabled ? 'border-[#7900c5] bg-purple-50/30 dark:bg-purple-900/10' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
                 <button 
                     onClick={() => setIsPollEnabled(!isPollEnabled)}
@@ -391,15 +377,14 @@ export const Upload: React.FC = () => {
       </div>
   );
 
-  const renderConfig = () => (
-      <div className="bg-white dark:bg-[#121212] rounded-2xl p-6 border border-gray-100 dark:border-gray-800 shadow-sm space-y-6 h-full overflow-y-auto">
+  const renderConfig = ({ hideSubmitButton } = { hideSubmitButton: false }) => (
+      <div className={`bg-white dark:bg-[#121212] rounded-2xl p-6 border border-gray-100 dark:border-gray-800 shadow-sm space-y-6 ${hideSubmitButton ? '' : 'h-full overflow-y-auto'}`}>
           <div className="flex items-center gap-2 text-gray-400 mb-2">
               <Icons.Settings className="w-4 h-4" />
               <h3 className="text-xs font-bold uppercase tracking-wider">Configurações</h3>
           </div>
 
           <div className="space-y-4">
-              {/* Group Select */}
               <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Turma</label>
                   <div className="relative">
@@ -415,7 +400,6 @@ export const Upload: React.FC = () => {
                   </div>
               </div>
 
-              {/* Subject Select */}
               <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Matéria</label>
                   <div className="relative">
@@ -438,7 +422,6 @@ export const Upload: React.FC = () => {
                   </div>
               </div>
 
-              {/* Category Select */}
               <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Categoria</label>
                   <div className="grid grid-cols-3 gap-2">
@@ -464,7 +447,6 @@ export const Upload: React.FC = () => {
                   </div>
               </div>
 
-              {/* Official Source Toggle */}
               {canPostOfficial && (
                   <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                       <label className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 block">Tipo de Publicação</label>
@@ -486,16 +468,18 @@ export const Upload: React.FC = () => {
               )}
           </div>
           
-          <div className="pt-6 mt-auto">
-              <button 
-                onClick={handleSubmit} 
-                disabled={isSubmitting || !title || !subjectId}
-                className="w-full bg-[#7900c5] hover:bg-[#60009e] text-white py-3.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-200 dark:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
-                  {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  <span>{isEditMode ? 'Salvar Alterações' : 'Publicar Material'}</span>
-              </button>
-          </div>
+          {!hideSubmitButton && (
+              <div className="pt-6 mt-auto">
+                  <button 
+                    onClick={handleSubmit} 
+                    disabled={isSubmitting || !title || !subjectId}
+                    className="w-full bg-[#7900c5] hover:bg-[#60009e] text-white py-3.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-200 dark:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                      {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                      <span>{isEditMode ? 'Salvar Alterações' : 'Publicar Material'}</span>
+                  </button>
+              </div>
+          )}
       </div>
   );
 
@@ -521,7 +505,6 @@ export const Upload: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black pb-24 md:pb-8 flex flex-col">
       
-      {/* Header */}
       <div className="bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -543,19 +526,29 @@ export const Upload: React.FC = () => {
                       <span>{isEditMode ? 'Salvar' : 'Publicar'}</span>
                   </button>
               </div>
+              <div className="md:hidden">
+                  <button 
+                    onClick={handleSubmit} 
+                    disabled={isSubmitting}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+                        !title || !subjectId 
+                        ? 'text-gray-400 bg-gray-100 dark:bg-gray-800' 
+                        : 'text-white bg-[#7900c5] shadow-md'
+                    }`}
+                  >
+                      {isEditMode ? 'Salvar' : 'Publicar'}
+                  </button>
+              </div>
           </div>
       </div>
 
       <div className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8">
         
-        {/* DESKTOP LAYOUT (Split View) */}
         <div className="hidden md:grid grid-cols-12 gap-8 h-full min-h-[calc(100vh-140px)]">
-            {/* Left Column: Editor */}
             <div className="col-span-7 lg:col-span-8 flex flex-col">
                 {renderEditor()}
             </div>
 
-            {/* Right Column: Config & Preview */}
             <div className="col-span-5 lg:col-span-4 flex flex-col gap-6 sticky top-24 h-fit max-h-[calc(100vh-100px)]">
                 <div className="flex-shrink-0">
                     {renderConfig()}
@@ -566,22 +559,38 @@ export const Upload: React.FC = () => {
             </div>
         </div>
 
-        {/* MOBILE LAYOUT (Tabs) */}
         <div className="md:hidden pb-20">
-            {mobileTab === 'content' && renderEditor()}
+            {mobileTab === 'content' && (
+                <>
+                    {renderEditor()}
+                    <button 
+                        onClick={() => setMobileTab('config')}
+                        className="fixed bottom-20 right-4 bg-white dark:bg-gray-800 text-[#7900c5] p-3 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 z-40 animate-in zoom-in"
+                    >
+                        <Icons.Dynamic name="chevron-right" className="w-6 h-6" />
+                    </button>
+                </>
+            )}
             
             {mobileTab === 'config' && (
-                <div className="animate-in slide-in-from-right-4">
-                    {renderConfig()}
+                <div className="animate-in slide-in-from-right-4 pb-20">
+                    {renderConfig({ hideSubmitButton: true })}
+                    <button 
+                        onClick={handleSubmit} 
+                        disabled={isSubmitting || !title || !subjectId}
+                        className="fixed bottom-20 right-4 left-4 bg-[#7900c5] text-white py-3 rounded-xl font-bold shadow-xl z-50 flex justify-center items-center gap-2"
+                    >
+                        {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {isEditMode ? 'Salvar' : 'Publicar Agora'}
+                    </button>
                 </div>
             )}
             
             {mobileTab === 'preview' && (
-                <div className="animate-in zoom-in-95 p-2">
+                <div className="animate-in zoom-in-95 p-2 pb-20">
                     <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-3xl min-h-[50vh] flex flex-col justify-center">
                         {renderPreview()}
                     </div>
-                    {/* Floating Publish Button for Mobile Preview */}
                     <button 
                         onClick={handleSubmit} 
                         disabled={isSubmitting || !title || !subjectId}

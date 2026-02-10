@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Comment, Profile } from '../../types';
 import { Icons } from '../Icons';
@@ -7,14 +8,22 @@ import { RichTextRenderer } from './RichTextRenderer';
 import { Skeleton } from './Skeleton';
 
 interface CommentsDrawerProps {
-    isOpen: boolean;
-    onClose: () => void;
+    isOpen?: boolean;
+    onClose?: () => void;
     fileId: string;
     currentUser: any;
     onUpdateCount: (newCount: number) => void;
+    variant?: 'drawer' | 'inline';
 }
 
-export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose, fileId, currentUser, onUpdateCount }) => {
+export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ 
+    isOpen = true, 
+    onClose, 
+    fileId, 
+    currentUser, 
+    onUpdateCount,
+    variant = 'drawer'
+}) => {
     const navigate = useNavigate();
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -28,12 +37,14 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
     useEffect(() => {
         if (isOpen) {
             loadComments();
-            document.body.style.overflow = 'hidden';
+            if (variant === 'drawer') {
+                document.body.style.overflow = 'hidden';
+            }
         } else {
             document.body.style.overflow = 'unset';
         }
         return () => { document.body.style.overflow = 'unset'; };
-    }, [isOpen, fileId]);
+    }, [isOpen, fileId, variant]);
 
     useEffect(() => {
         if (replyingTo && textareaRef.current) {
@@ -69,7 +80,9 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
         setReplyingTo(null);
         setIsSubmitting(false);
         
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        if (variant === 'drawer') {
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        }
     };
 
     const deleteComment = async (commentId: string) => {
@@ -90,7 +103,7 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
         setComments(updated);
     };
 
-    if (!isOpen) return null;
+    if (!isOpen && variant === 'drawer') return null;
 
     const CommentItem: React.FC<{ comment: Comment, depth?: number }> = ({ comment, depth = 0 }) => (
         <div className={`relative ${depth > 0 ? 'ml-9 mt-3' : 'mt-4'}`}>
@@ -99,7 +112,7 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
             )}
             
             <div className="flex space-x-3 group">
-                <div className="flex-shrink-0 cursor-pointer" onClick={() => { onClose(); navigate(`/u/${comment.user_id}`); }}>
+                <div className="flex-shrink-0 cursor-pointer" onClick={() => { if(onClose) onClose(); navigate(`/u/${comment.user_id}`); }}>
                     <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                         {comment.user?.avatar_url ? (
                             <img src={comment.user.avatar_url} className="w-full h-full object-cover" />
@@ -112,7 +125,7 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
                 <div className="flex-1 min-w-0">
                     <div className="bg-gray-50 dark:bg-gray-800/60 rounded-2xl rounded-tl-none p-3 border border-transparent dark:border-gray-800">
                         <div className="flex justify-between items-start mb-1">
-                            <span className="text-xs font-bold text-gray-900 dark:text-white hover:underline cursor-pointer" onClick={() => { onClose(); navigate(`/u/${comment.user_id}`); }}>
+                            <span className="text-xs font-bold text-gray-900 dark:text-white hover:underline cursor-pointer" onClick={() => { if(onClose) onClose(); navigate(`/u/${comment.user_id}`); }}>
                                 {comment.user?.username}
                             </span>
                             <span className="text-[10px] text-gray-400">
@@ -158,12 +171,9 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
         </div>
     );
 
-    return (
-        <div className="fixed inset-0 z-[60] flex justify-end">
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
-
-            <div className="relative w-full md:w-[480px] h-full bg-white dark:bg-[#121212] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-100 dark:border-gray-800">
-                
+    const Content = () => (
+        <div className="flex flex-col h-full">
+            {variant === 'drawer' && (
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md z-10 sticky top-0">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         Comentários <span className="text-gray-400 text-sm font-normal">({comments.reduce((acc, c) => acc + 1 + (c.replies?.length || 0), 0)})</span>
@@ -172,76 +182,93 @@ export const CommentsDrawer: React.FC<CommentsDrawerProps> = ({ isOpen, onClose,
                         <Icons.X className="w-5 h-5" />
                     </button>
                 </div>
+            )}
 
-                <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
-                    {loading ? (
-                        <div className="space-y-4">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="flex space-x-3">
-                                    <Skeleton variant="circular" className="w-8 h-8" />
-                                    <div className="flex-1 space-y-2">
-                                        <Skeleton className="w-full h-16 rounded-xl" />
-                                        <Skeleton className="w-20 h-3" />
-                                    </div>
+            <div className={`flex-1 overflow-y-auto scroll-smooth ${variant === 'drawer' ? 'p-6' : 'py-4'}`}>
+                {loading ? (
+                    <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="flex space-x-3">
+                                <Skeleton variant="circular" className="w-8 h-8" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="w-full h-16 rounded-xl" />
+                                    <Skeleton className="w-20 h-3" />
                                 </div>
-                            ))}
-                        </div>
-                    ) : comments.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center text-gray-400">
-                            <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                                <Icons.MessageCircle className="w-8 h-8 opacity-50" />
                             </div>
-                            <p className="text-sm font-medium">Nenhum comentário ainda.</p>
-                            <p className="text-xs">Seja o primeiro a iniciar a conversa!</p>
+                        ))}
+                    </div>
+                ) : comments.length === 0 ? (
+                    <div className="h-40 flex flex-col items-center justify-center text-center text-gray-400">
+                        <div className="w-12 h-12 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                            <Icons.MessageCircle className="w-6 h-6 opacity-50" />
                         </div>
-                    ) : (
-                        <div className="pb-4">
-                            {comments.map(c => <CommentItem key={c.id} comment={c} />)}
-                            <div ref={messagesEndRef} />
-                        </div>
-                    )}
-                </div>
+                        <p className="text-sm font-medium">Nenhum comentário ainda.</p>
+                        <p className="text-xs">Seja o primeiro a iniciar a conversa!</p>
+                    </div>
+                ) : (
+                    <div className="pb-4">
+                        {comments.map(c => <CommentItem key={c.id} comment={c} />)}
+                        <div ref={messagesEndRef} />
+                    </div>
+                )}
+            </div>
 
-                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#121212]">
-                    {replyingTo && (
-                        <div className="flex justify-between items-center mb-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-bold animate-in slide-in-from-bottom-2">
-                            <span>Respondendo a @{replyingTo.user?.username}</span>
-                            <button onClick={() => setReplyingTo(null)} className="hover:text-purple-900 p-1"><Icons.X className="w-3 h-3" /></button>
-                        </div>
-                    )}
-                    
-                    <form onSubmit={submitComment} className="flex items-end gap-2">
-                        <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-[#7900c5] transition-all border border-transparent dark:border-gray-700">
-                            <textarea
-                                ref={textareaRef}
-                                value={newComment}
-                                onChange={e => setNewComment(e.target.value)}
-                                placeholder="Adicione um comentário..."
-                                className="w-full bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white placeholder-gray-500 resize-none max-h-32 min-h-[24px] py-1"
-                                rows={1}
-                                onInput={(e) => {
-                                    const target = e.target as HTMLTextAreaElement;
-                                    target.style.height = 'auto';
-                                    target.style.height = `${target.scrollHeight}px`;
-                                }}
-                                onKeyDown={(e) => {
-                                    if(e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        submitComment();
-                                    }
-                                }}
-                            />
-                        </div>
-                        <button 
-                            type="submit" 
-                            disabled={!newComment.trim() || isSubmitting}
-                            className="p-3 bg-[#7900c5] hover:bg-[#60009e] text-white rounded-full shadow-lg shadow-purple-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-90 flex items-center justify-center"
-                        >
-                            {isSubmitting ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Icons.Send className="w-4 h-4" />}
-                        </button>
-                    </form>
+            <div className={`border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#121212] ${variant === 'drawer' ? 'p-4' : 'pt-4'}`}>
+                {replyingTo && (
+                    <div className="flex justify-between items-center mb-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-bold animate-in slide-in-from-bottom-2">
+                        <span>Respondendo a @{replyingTo.user?.username}</span>
+                        <button onClick={() => setReplyingTo(null)} className="hover:text-purple-900 p-1"><Icons.X className="w-3 h-3" /></button>
+                    </div>
+                )}
+                
+                <form onSubmit={submitComment} className="flex items-end gap-2">
+                    <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-[#7900c5] transition-all border border-transparent dark:border-gray-700">
+                        <textarea
+                            ref={textareaRef}
+                            value={newComment}
+                            onChange={e => setNewComment(e.target.value)}
+                            placeholder="Adicione um comentário..."
+                            className="w-full bg-transparent border-none outline-none text-sm text-gray-900 dark:text-white placeholder-gray-500 resize-none max-h-32 min-h-[24px] py-1"
+                            rows={1}
+                            onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = 'auto';
+                                target.style.height = `${target.scrollHeight}px`;
+                            }}
+                            onKeyDown={(e) => {
+                                if(e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    submitComment();
+                                }
+                            }}
+                        />
+                    </div>
+                    <button 
+                        type="submit" 
+                        disabled={!newComment.trim() || isSubmitting}
+                        className="p-3 bg-[#7900c5] hover:bg-[#60009e] text-white rounded-full shadow-lg shadow-purple-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-90 flex items-center justify-center"
+                    >
+                        {isSubmitting ? <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> : <Icons.Send className="w-4 h-4" />}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+
+    if (variant === 'drawer') {
+        return (
+            <div className="fixed inset-0 z-[60] flex justify-end">
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+                <div className="relative w-full md:w-[480px] h-full bg-white dark:bg-[#121212] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-100 dark:border-gray-800">
+                    <Content />
                 </div>
             </div>
+        );
+    }
+
+    return (
+        <div id="comments-section" className="w-full">
+            <Content />
         </div>
     );
 };

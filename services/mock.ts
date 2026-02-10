@@ -280,5 +280,11 @@ export const MockService = {
   getDeckCards: async () => [],
   createFlashcardDeck: async () => {},
   updateFlashcardDeck: async () => {},
-  deleteFlashcardDeck: async () => {}
+  deleteFlashcardDeck: async () => {},
+  getNotifications: async (userId: string) => [
+      { id: '1', user_id: userId, type: 'system' as const, content: 'Bem-vindo ao novo Centro de Notificações!', read: false, created_at: new Date().toISOString() },
+      { id: '2', user_id: userId, type: 'like' as const, content: 'João curtiu sua publicação de Física.', read: true, created_at: new Date(Date.now() - 3600000).toISOString(), actor: { username: 'João', avatar_url: null } }
+  ],
+  markNotificationRead: async (notifId: string) => true,
+  markAllNotificationsRead: async (userId: string) => true
 };

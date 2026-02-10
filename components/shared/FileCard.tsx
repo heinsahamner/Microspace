@@ -4,7 +4,7 @@ import { FileData, FileAttachment } from '../../types';
 import { Icons } from '../Icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { Service } from '../../services/supabase';
-import { OfflineService } from '../../services/offline'; // Import OfflineService
+import { OfflineService } from '../../services/offline';
 import { DeepLinkService } from '../../services/deepLink';
 import { useNavigate } from 'react-router-dom';
 import { RichTextRenderer } from './RichTextRenderer';
@@ -18,6 +18,7 @@ interface FileCardProps {
   onToggleSave?: (id: string, status: boolean) => void;
   onDelete?: (id: string) => void;
   highlightTerm?: string;
+  isDetailView?: boolean;
 }
 
 const AttachmentViewer: React.FC<{ attachment: FileAttachment }> = ({ attachment }) => {
@@ -33,7 +34,7 @@ const AttachmentViewer: React.FC<{ attachment: FileAttachment }> = ({ attachment
 
     if (isImage) {
         return (
-            <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 relative group bg-gray-100 dark:bg-black">
+            <div className="mt-3 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 relative group bg-gray-100 dark:bg-black" onClick={(e) => e.stopPropagation()}>
                 <img 
                     src={attachment.url} 
                     alt={attachment.name} 
@@ -51,7 +52,7 @@ const AttachmentViewer: React.FC<{ attachment: FileAttachment }> = ({ attachment
 
     if (isPDF) {
         return (
-            <div className="mt-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="mt-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212]">
                     <div className="flex items-center gap-2 overflow-hidden">
                         <div className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded">
@@ -92,9 +93,8 @@ const AttachmentViewer: React.FC<{ attachment: FileAttachment }> = ({ attachment
         );
     }
 
-    // Docs / Generic Fallback
     return (
-        <div className="mt-2 flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+        <div className="mt-2 flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 overflow-hidden">
                 <div className={`p-2 rounded-lg ${isDoc ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-gray-200 dark:bg-gray-800 text-gray-500'}`}>
                     {isDoc ? <Icons.FileWord className="w-4 h-4" /> : <Icons.FileText className="w-4 h-4" />}
@@ -111,7 +111,7 @@ const AttachmentViewer: React.FC<{ attachment: FileAttachment }> = ({ attachment
     );
 };
 
-export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave, onDelete, highlightTerm }) => {
+export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave, onDelete, highlightTerm, isDetailView = false }) => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   
@@ -121,13 +121,13 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
   const [commentCount, setCommentCount] = useState(file.comments_count || 0);
   const [isAnimating, setIsAnimating] = useState(false);
   
-  // Controls
   const [showMenu, setShowMenu] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
-  // Check Save Status Locally on Mount (Since cloud doesn't know about local saves)
+  const [isTextExpanded, setIsTextExpanded] = useState(false);
+  const shouldTruncate = !isDetailView && file.description && file.description.length > 280;
+
   useEffect(() => {
-      // Only check if it wasn't already passed as true (e.g. from Backpack page)
       if (!isSaved) {
           OfflineService.isFileSaved(file.id).then(status => {
               if (status) setIsSaved(true);
@@ -135,11 +135,9 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       }
   }, [file.id]);
 
-  // Permissions
   const canEdit = user && file.uploader_id === user.id;
   const canDelete = user && (file.uploader_id === user.id || profile?.role === 'admin');
 
-  // Gamification Styles
   let borderClass = "border border-gray-100 dark:border-gray-800";
   let badge = null;
 
@@ -169,7 +167,14 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       );
   }
 
-  const handleAddToDiary = () => {
+  const handleCardClick = () => {
+      if (!isDetailView) {
+          navigate(`/post/${file.id}`);
+      }
+  };
+
+  const handleAddToDiary = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const payload = {
         title: file.title,
         description: `Material de referência: ${file.title}\n\n${file.description || ''}\n\nLink original: ${window.location.origin}/subject/${file.subject_id}`,
@@ -189,7 +194,8 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
     window.open(diaryUrl, '_blank');
   };
 
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+      e.stopPropagation();
       if (!user) return;
       const newIsLiked = !isLiked;
       setIsLiked(newIsLiked);
@@ -202,7 +208,8 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       await Service.toggleLike(file.id, user.id);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e: React.MouseEvent) => {
+      e.stopPropagation();
       if (!user) return;
       const newStatus = !isSaved;
       setIsSaved(newStatus);
@@ -210,7 +217,8 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       if (onToggleSave) onToggleSave(file.id, newStatus);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+      e.stopPropagation();
       if(!window.confirm("Tem certeza que deseja excluir esta postagem permanentemente?")) return;
       try {
           await Service.deleteFile(file.id);
@@ -228,14 +236,21 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       }
   };
 
+  const toggleMenu = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowMenu(!showMenu);
+  };
+
   return (
     <>
-    <div className={`bg-white dark:bg-[#121212] rounded-xl p-4 shadow-sm hover:shadow-md transition-all relative group ${borderClass}`}>
-      
+    <div 
+        onClick={handleCardClick}
+        className={`bg-white dark:bg-[#121212] rounded-xl p-4 shadow-sm hover:shadow-md transition-all relative group ${borderClass} ${!isDetailView ? 'cursor-pointer' : ''}`}
+    >      
       {(canEdit || canDelete) && (
           <div className="absolute top-2 right-2 z-10">
               <button 
-                onClick={() => setShowMenu(!showMenu)} 
+                onClick={toggleMenu} 
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition-colors"
               >
                   <Icons.MoreVertical className="w-4 h-4" />
@@ -245,10 +260,11 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
                   <div 
                     className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg shadow-xl overflow-hidden z-20 animate-in fade-in zoom-in-95"
                     onMouseLeave={() => setShowMenu(false)}
+                    onClick={(e) => e.stopPropagation()}
                   >
                       {canEdit && (
                           <button 
-                            onClick={() => navigate(`/post/edit/${file.id}`)}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/post/edit/${file.id}`); }}
                             className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2"
                           >
                               <Icons.Edit className="w-3 h-3" /> Editar
@@ -304,11 +320,19 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       <div className="mb-4">
           <RichTextRenderer 
             text={file.description || "Sem descrição."} 
-            className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3" 
+            className={`text-sm text-gray-600 dark:text-gray-400 ${shouldTruncate && !isTextExpanded ? 'line-clamp-3' : ''}`} 
             highlightTerm={highlightTerm}
           />
+
+          {shouldTruncate && !isTextExpanded && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsTextExpanded(true); }}
+                className="text-xs font-bold text-gray-400 hover:text-[#7900c5] mt-1"
+              >
+                  Ver mais...
+              </button>
+          )}
           
-          {/* ATTACHMENTS VIEWER */}
           {file.attachments && file.attachments.length > 0 && (
               <div className="mt-4 grid grid-cols-1 gap-3">
                   {file.attachments.map((att, idx) => (
@@ -317,8 +341,11 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
               </div>
           )}
 
-          {/* POLL RENDERER */}
-          {file.poll && <PollWidget poll={file.poll} />}
+          {file.poll && (
+              <div onClick={(e) => e.stopPropagation()}>
+                  <PollWidget poll={file.poll} />
+              </div>
+          )}
       </div>
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-50 dark:border-gray-800">
@@ -334,7 +361,14 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
            </button>
            
            <button 
-             onClick={() => setIsCommentsOpen(true)}
+             onClick={(e) => {
+                 e.stopPropagation();
+                 if (isDetailView) {
+                     document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' });
+                 } else {
+                     setIsCommentsOpen(true);
+                 }
+             }}
              className="transition-colors flex items-center space-x-1 text-gray-400 dark:text-gray-500 hover:text-blue-500"
            >
              <Icons.MessageCircle className="w-5 h-5" />
@@ -363,7 +397,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, colorHex, onToggleSave
       </div>
     </div>
 
-    {isCommentsOpen && (
+    {isCommentsOpen && !isDetailView && (
         <CommentsDrawer 
             isOpen={isCommentsOpen} 
             onClose={() => setIsCommentsOpen(false)} 

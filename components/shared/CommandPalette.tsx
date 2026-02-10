@@ -43,9 +43,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     { id: 'nav-community', label: 'Comunidade', icon: Icons.Users, group: 'Navegação', action: () => navigate('/community') },
     { id: 'nav-profile', label: 'Meu Perfil', icon: Icons.User, group: 'Navegação', action: () => navigate(`/u/${profile?.id}`) },
     { id: 'act-upload', label: 'Publicar Novo Material', icon: Icons.Upload, group: 'Ações', action: () => navigate('/upload'), shortcut: 'N' },
-    { id: 'app-diary', label: 'Abrir Diary', icon: Icons.BookOpen, group: 'Apps', action: () => window.open('https://diary.microspace.app', '_blank') },
+    { id: 'app-diary', label: 'Abrir Diary', icon: Icons.BookOpen, group: 'Apps', action: () => window.open('https://diary.microspace.site', '_blank') },
     { id: 'app-notes', label: 'Abrir Notes', icon: (props: any) => <Icons.Dynamic name="penTool" {...props} />, group: 'Apps', action: () => window.open('https://notes.microspace.app', '_blank') },
-    { id: 'app-forum', label: 'Abrir Fórum', icon: Icons.MessageCircle, group: 'Apps', action: () => window.open('https://forum.microspace.app', '_blank') },
+    { id: 'app-forum', label: 'Abrir Fórum', icon: Icons.MessageCircle, group: 'Apps', action: () => window.open('https://forum.microspace.site', '_blank') },
     { id: 'sys-settings', label: 'Configurações', icon: Icons.Settings, group: 'Ações', action: () => navigate('/settings') },
     { id: 'sys-logout', label: 'Sair da Conta', icon: Icons.LogOut, group: 'Ações', action: () => signOut() },
   ];

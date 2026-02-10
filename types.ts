@@ -122,6 +122,7 @@ export interface FileData {
   isSaved?: boolean;
   poll?: Poll | null;
   author_role?: 'teacher' | 'monitor' | 'representative' | null;
+  collection_id?: string | null;
 }
 
 export interface Interaction {
@@ -139,6 +140,24 @@ export interface Feedback {
     status: 'open' | 'resolved';
     created_at: string;
     user?: Profile;
+}
+
+export interface AppNotification {
+    id: string;
+    user_id: string;
+    type: 'like' | 'comment' | 'follow' | 'system';
+    content: string;
+    related_id?: string;
+    read: boolean;
+    created_at: string;
+    actor?: { username: string; avatar_url: string | null };
+}
+
+export interface BackpackCollection {
+    id: string;
+    name: string;
+    color?: string;
+    created_at: string;
 }
 
 export interface TabItem {

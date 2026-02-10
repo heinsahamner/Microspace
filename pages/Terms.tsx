@@ -86,7 +86,7 @@ export const Terms: React.FC = () => {
                         onClick={() => navigate('/settings')}
                         className="text-[#7900c5] font-bold hover:underline"
                     >
-                        Entre em contato pelo Suporte (não tem suporte ainda)
+                        Entre em contato pelo suporte (não tem suporte ainda)
                     </button>
                 </div>
 

@@ -19,6 +19,7 @@ import { Terms } from './pages/Terms';
 import { AdminPanel } from './pages/AdminPanel';
 import { AdminClaim } from './pages/AdminClaim';
 import { Diagnostic } from './pages/Diagnostic';
+import { PostDetail } from './pages/PostDetail';
 
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
@@ -82,6 +83,7 @@ const App: React.FC = () => {
                     <Route path="/official" element={<ProtectedRoute><FeedPage type="official" /></ProtectedRoute>} />
                     <Route path="/backpack" element={<ProtectedRoute><Backpack /></ProtectedRoute>} />
                     <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+                    <Route path="/post/:id" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
                     <Route path="/post/edit/:id" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
                     <Route path="/u/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
                     <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />

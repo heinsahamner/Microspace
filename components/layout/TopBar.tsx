@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Icons } from '../Icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Subject } from '../../types';
+import { Subject, AppNotification } from '../../types';
 import { Service } from '../../services/supabase';
 import { CommandPalette } from '../shared/CommandPalette';
 
@@ -16,6 +16,8 @@ export const TopBar: React.FC = () => {
   
   const [showMenu, setShowMenu] = useState(false);
   const [showSubjectsMenu, setShowSubjectsMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [showAbout, setShowAbout] = useState(false);
   const [showCmdPalette, setShowCmdPalette] = useState(false);
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
@@ -31,9 +33,26 @@ export const TopBar: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+      if (profile) {
+          fetchNotifications();
+          const interval = setInterval(fetchNotifications, 60000);
+          return () => clearInterval(interval);
+      }
+  }, [profile]);
+
+  const fetchNotifications = () => {
+      if (profile) {
+          Service.getNotifications(profile.id).then(setNotifications);
+      }
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   const toggleMenu = () => {
       setShowMenu(!showMenu);
       setShowSubjectsMenu(false);
+      setShowNotifications(false);
   };
 
   const toggleSubjectsMenu = async () => {
@@ -47,10 +66,31 @@ export const TopBar: React.FC = () => {
     }
     setShowSubjectsMenu(!showSubjectsMenu);
     setShowMenu(false);
-};
+    setShowNotifications(false);
+  };
+
+  const toggleNotifications = async () => {
+      const newState = !showNotifications;
+      setShowNotifications(newState);
+      setShowMenu(false);
+      setShowSubjectsMenu(false);
+      
+      if (newState && unreadCount > 0 && profile) {
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+          
+          await Service.markAllNotificationsRead(profile.id);
+      }
+  };
+
+  const handleClearNotifications = async () => {
+      if(profile && unreadCount > 0) {
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+          await Service.markAllNotificationsRead(profile.id);
+      }
+  };
 
   const tabs = [
-    { path: '/', label: 'Dashboard' },
+    { path: '/', label: 'Início' },
     { path: '/subjects', label: 'Matérias' },
     { path: '/community', label: 'Comunidade' },
     { path: '/official', label: 'Oficial' },
@@ -109,6 +149,15 @@ export const TopBar: React.FC = () => {
                         </div>
                     )}
                 </button>
+
+                <button
+                    onClick={() => setShowCmdPalette(true)}
+                    className="md:hidden p-2 rounded-lg text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors"
+                    title="Busca"
+                >
+                <Icons.Search className="w-5 h-5" />
+                </button>
+
             </div>
 
             <div className="absolute left-1/2 transform -translate-x-1/2 z-10 cursor-pointer group" onClick={() => setShowAbout(true)}>
@@ -116,13 +165,61 @@ export const TopBar: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-3 z-20">
+
                 <button 
                     onClick={() => setShowCmdPalette(true)}
-                    className="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors"
+                    className="hidden md:flex p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors"
                     title="Busca Global (Ctrl + K)"
                 >
-                    <Icons.Search className="w-5 h-5" />
+                <Icons.Search className="w-5 h-5" />
                 </button>
+
+                <div className="relative">
+                    <button 
+                        onClick={toggleNotifications}
+                        className="p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors relative"
+                    >
+                        <Icons.Bell className="w-5 h-5" />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-black animate-pulse"></span>
+                        )}
+                    </button>
+
+                    {showNotifications && (
+                        <div className="absolute top-12 right-[-60px] md:right-0 w-80 bg-white dark:bg-gray-900 shadow-xl rounded-xl border border-gray-100 dark:border-gray-800 p-0 z-50 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Notificações</h3>
+                                <button onClick={handleClearNotifications} className="text-[10px] text-[#7900c5] font-bold hover:underline">Marcar tudo como lido</button>
+                            </div>
+                            <div className="max-h-80 overflow-y-auto">
+                                {notifications.length > 0 ? notifications.map(n => (
+                                    <div 
+                                        key={n.id} 
+                                        onClick={() => {
+                                            if (n.related_id && (n.type === 'like' || n.type === 'comment')) {
+                                                navigate(`/post/${n.related_id}`);
+                                            } else if (n.related_id && n.type === 'follow') {
+                                                navigate(`/u/${n.related_id}`);
+                                            }
+                                            setShowNotifications(false);
+                                        }}
+                                        className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-50 dark:border-gray-800 last:border-0 flex gap-3 cursor-pointer"
+                                    >
+                                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.read ? 'bg-transparent' : 'bg-blue-500'}`}></div>
+                                        <div>
+                                            <p className="text-sm text-gray-800 dark:text-gray-200 leading-snug">{n.content}</p>
+                                            <p className="text-[10px] text-gray-400 mt-1">{new Date(n.created_at).toLocaleDateString()} • {new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="py-8 text-center text-gray-400 text-xs">
+                                        Sem novas notificações.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 <button onClick={() => navigate('/upload')} className="hidden md:flex p-2 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors" title="Novo Upload">
                     <Icons.Upload className="w-5 h-5" />
@@ -209,7 +306,7 @@ export const TopBar: React.FC = () => {
                         </div>
                         <div>
                             <h2 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">Microspace</h2>
-                            <p className="text-xs text-gray-400 font-medium">Apps:</p>
+                            <p className="text-xs text-gray-400 font-medium">Outras ferramentas:</p>
                         </div>
                     </div>
                     <button 
@@ -237,10 +334,10 @@ export const TopBar: React.FC = () => {
                         colorClass="text-pink-600 bg-pink-50 dark:bg-pink-900/20"
                     />
                     <AppItem 
-                        title="Notes" 
-                        desc="Caderno digital inteligente" 
+                        title="Things" 
+                        desc="Hub de ferramentas" 
                         icon={(props: any) => <Icons.Dynamic name="penTool" {...props} />} 
-                        url="https://notes.microspace.site"
+                        url="https://things.microspace.site"
                         colorClass="text-amber-600 bg-amber-50 dark:bg-amber-900/20"
                     />
                 </div>
@@ -248,7 +345,7 @@ export const TopBar: React.FC = () => {
                 <div className="p-6 pt-2 text-center">
                     <div className="w-12 h-1 bg-gray-100 dark:bg-gray-800 rounded-full mx-auto mb-4"></div>
                     <p className="text-[10px] text-gray-300 dark:text-gray-600 font-medium uppercase tracking-widest">
-                        Versão 0.7.1 (Pré-Alpha)
+                        Versão 0.7.2 (Pré-Alpha)
                     </p>
                 </div>
             </div>

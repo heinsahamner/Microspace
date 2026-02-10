@@ -114,7 +114,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange 
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         className="w-full h-full p-4 bg-transparent border-none focus:ring-0 resize-none font-mono text-sm text-gray-800 dark:text-gray-200 leading-relaxed outline-none"
-                        placeholder="# Título do Resumo&#10;&#10;Escreva aqui seu conteúdo...&#10;- Suporta listas&#10;- **Negrito** e *Itálico*&#10;- [Links](https://...)"
+                        placeholder="# Título do Resumo&#10;&#10;Escreva aqui seu conteúdo..."
                     />
                 ) : (
                     <div className="w-full h-full p-4 overflow-y-auto">

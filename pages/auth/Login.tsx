@@ -42,7 +42,7 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <AuthLayout title="Olá novamente!" subtitle="Sentimos sua falta. Vamos conectar você.">
+        <AuthLayout title="Olá novamente!" subtitle="Faça o seu login abaixo.">
             
             <div className="space-y-5">
                 {error && (
@@ -88,7 +88,7 @@ export const Login: React.FC = () => {
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50/50 dark:bg-black/20 border border-gray-200/50 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#7900c5]/50 focus:bg-white/80 dark:focus:bg-black/40 focus:border-transparent transition-all backdrop-blur-sm"
-                                placeholder="Seu email"
+                                placeholder="Seu email (Ex: valentinaeccard@gmail.com)"
                             />
                         </div>
                     </div>
@@ -104,7 +104,7 @@ export const Login: React.FC = () => {
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
                                 className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50/50 dark:bg-black/20 border border-gray-200/50 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#7900c5]/50 focus:bg-white/80 dark:focus:bg-black/40 focus:border-transparent transition-all backdrop-blur-sm"
-                                placeholder="Sua senha"
+                                placeholder="Sua senha (Ex: ilomilo)"
                             />
                         </div>
                         <div className="flex justify-end pt-1">

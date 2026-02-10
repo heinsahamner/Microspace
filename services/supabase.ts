@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { FileData, Role, FlashcardDeck, Flashcard, FileAttachment } from '../types';
+import { FileData, Role, FlashcardDeck, Flashcard, FileAttachment, AppNotification } from '../types';
 import { MockService, initDB } from './mock';
 import { OfflineService } from './offline'; 
 
@@ -154,12 +154,17 @@ const RealService = {
             const ids = savedFiles.map(f => f.id);
             try {
                 const { data: freshFiles } = await supabase.from('files')
-                    .select(`*, subject:subjects(*), uploader:profiles(*)`)
+                    .select(`*, subject:subjects(*), uploader:profiles(*), poll:polls(*, options:poll_options(*), votes:poll_votes(option_id, user_id))`)
                     .in('id', ids);
                 
-                if (freshFiles) {
+                  if (freshFiles) {
                     for (const fresh of freshFiles) {
-                        const updated = { ...fresh, isSaved: true };
+                        const localCopy = savedFiles.find(f => f.id === fresh.id);
+                        const updated = { 
+                            ...fresh, 
+                            isSaved: true,
+                            collection_id: localCopy?.collection_id 
+                        };
                         await OfflineService.saveFile(updated);
                     }
                     return await OfflineService.getAllFiles();
@@ -704,6 +709,49 @@ const RealService = {
             console.error("Storage Exception:", e); 
             throw e; 
         }
+    },
+
+    getNotifications: async (userId: string): Promise<AppNotification[]> => {
+        if (!supabase) return [];
+        
+        const { data, error } = await supabase
+            .from('notifications')
+            .select(`
+                *,
+                actor:profiles!actor_id(username, avatar_url)
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (error) {
+            console.error('Error fetching notifications:', error);
+            return [];
+        }
+
+        return data.map((n: any) => ({
+            ...n,
+            actor: n.actor
+        }));
+    },
+
+    markNotificationRead: async (notifId: string) => {
+        if (!supabase) return false;
+        const { error } = await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('id', notifId);
+        return !error;
+    },
+
+    markAllNotificationsRead: async (userId: string) => {
+         if (!supabase) return false;
+         const { error } = await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('user_id', userId)
+            .eq('read', false);
+         return !error;
     },
 
     ensureProfileExists: async (user: any) => RealService.syncUserToLocalDB(user),

@@ -620,7 +620,6 @@ export const AdminPanel: React.FC = () => {
                           
                           {modalMode === 'edit' && (
                               <div className="grid grid-cols-1 gap-4">
-                                  {/* TEACHER SELECT */}
                                   <div>
                                       <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase flex items-center gap-2">
                                           <Icons.User className="w-3 h-3" /> Professor Responsável
@@ -640,7 +639,6 @@ export const AdminPanel: React.FC = () => {
                                       </div>
                                   </div>
 
-                                  {/* MONITOR SELECT */}
                                   <div>
                                       <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase flex items-center gap-2">
                                           <Icons.Shield className="w-3 h-3" /> Monitor da Matéria
